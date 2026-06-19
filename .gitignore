@@ -62,3 +62,13 @@ docker-compose.override.yml
 Thumbs.db
 suggestion-engine-sub-roadmap.md
 development-roadmap.md
+
+# Dev testing environment
+# Keep directory structure but ignore music/database content
+dev/music/*
+!dev/music/.gitkeep
+dev/data/*
+!dev/data/.gitkeep
+
+# Music files used for local testing (binary — not tracked in git)
+music_for_testing/

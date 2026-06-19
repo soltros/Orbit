@@ -1,0 +1,15 @@
+# Dockerfile for the mock Subsonic server (dev only)
+# Lightweight Python image. Installs Flask + Mutagen for tag reading.
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install dependencies
+RUN pip install --no-cache-dir flask mutagen
+
+# Copy the mock server script
+COPY mock_subsonic.py /app/mock_subsonic.py
+
+EXPOSE 4533
+
+CMD ["python", "/app/mock_subsonic.py"]

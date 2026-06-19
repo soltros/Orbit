@@ -21,3 +21,8 @@ class Config:
     OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
     ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
     LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "openai")  # openai or anthropic
+
+    # Default recommendation engine mode ('llm' or 'local')
+    # Can be overridden per-user via /api/queue/mode POST endpoint.
+    RECOMMENDATION_MODE = os.environ.get("RECOMMENDATION_MODE", "llm")
+

@@ -1,0 +1,137 @@
+# Orbit Dev Docker Compose
+#
+# Purpose: Local development and testing WITHOUT needing a real Navidrome install.
+#          A mock Subsonic server reads files from ./dev/music/ and serves them
+#          to the backend just like a real Navidrome would.
+#
+# Key differences from production compose:
+#   - No Traefik. Frontend and backend are exposed directly on localhost ports.
+#   - Adds orbit-mock-subsonic container (fake Navidrome API + audio streaming).
+#   - Backend and frontend code hot-reloads via bind-mounted source directories.
+#   - Uses .env.dev for config.
+#   - The SQLite database is stored in ./dev/data/ so you can inspect it directly.
+#   - Worker runs with no CPU cap so analysis is faster on dev hardware.
+#
+# Usage:
+#   1. Drop some audio files into ./dev/music/  (mp3, flac, ogg, m4a, etc.)
+#   2. docker compose -f docker-compose.dev.yml --env-file .env.dev up --build
+#   3. Open http://localhost:5173 in your browser
+#   4. Open http://localhost:5000/health  to verify backend
+#   5. Open http://localhost:4533/list-tracks to see what the mock server indexed
+
+version: '3.8'
+
+services:
+
+  # ==========================================
+  # MOCK SUBSONIC / NAVIDROME (DEV ONLY)
+  # ==========================================
+  # Scans ./dev/music/ and serves tracks via the Subsonic wire protocol.
+  # No real Navidrome install needed.
+  #
+  # Dev-only utility endpoints:
+  #   GET http://localhost:4533/list-tracks     → JSON list of indexed tracks
+  #   GET http://localhost:4533/refresh-index   → Force rescan of music dir
+  mock-subsonic:
+    build:
+      context: ./dev
+      dockerfile: Dockerfile.mock
+    container_name: orbit-mock-subsonic
+    ports:
+      - "4533:4533"           # Expose mock Navidrome to host for direct inspection
+    volumes:
+      - ./dev/music:/music:ro # Read-only mount of your test music files
+      - ./dev:/app/dev:ro     # Mount the mock script itself for hot-reload
+    environment:
+      - MOCK_MUSIC_DIR=/music
+      - FLASK_ENV=development
+    networks:
+      - orbit-dev-network
+    restart: unless-stopped
+
+  # ==========================================
+  # API BACKEND (FLASK DEV SERVER)
+  # ==========================================
+  # Exposes port 5000 directly so you can hit the API with curl/Postman.
+  # Backend source is bind-mounted so changes take effect after container restart.
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: orbit-backend-dev
+    command: flask run --host=0.0.0.0 --port=5000 --debug
+    ports:
+      - "5000:5000"           # Flask dev server - directly accessible on localhost
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
+      - FLASK_ENV=development
+      - FLASK_APP=wsgi.py
+      - DATABASE_PATH=${DATABASE_PATH:-/app/data/orbit_dev.db}
+      - SUBSONIC_URL=${SUBSONIC_URL:-http://orbit-mock-subsonic:4533}
+      - SUBSONIC_USER=${SUBSONIC_USER:-dev}
+      - SUBSONIC_PASS=${SUBSONIC_PASS:-dev}
+      - LLM_PROVIDER=${LLM_PROVIDER:-openai}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - RECOMMENDATION_MODE=${RECOMMENDATION_MODE:-local}
+    volumes:
+      - ./backend:/app              # Bind-mount source for hot-reload
+      - ./dev/data:/app/data        # SQLite stored in dev/data/ (inspectable on host)
+      - ./dev/music:/music          # Music dir for NSP playlist file exports
+    networks:
+      - orbit-dev-network
+    depends_on:
+      - mock-subsonic
+    restart: unless-stopped
+
+  # ==========================================
+  # ACOUSTIC WORKER (DEV - NO CPU CAP)
+  # ==========================================
+  # Same process as production but no resource limits so analysis
+  # completes faster during testing.
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: orbit-worker-dev
+    command: python worker.py
+    environment:
+      - DATABASE_PATH=${DATABASE_PATH:-/app/data/orbit_dev.db}
+      - MUSIC_DIR_CONTAINER=/music
+    volumes:
+      - ./backend:/app              # Bind-mount source
+      - ./dev/data:/app/data        # Same database as backend
+      - ./dev/music:/music:ro       # Read-only music mount for analysis
+    networks:
+      - orbit-dev-network
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # ==========================================
+  # FRONTEND (VITE DEV SERVER)
+  # ==========================================
+  # Runs the Vite hot-reload dev server instead of the Nginx production build.
+  # Source is bind-mounted. Changes to .tsx files reflect instantly in browser.
+  # The Vite config proxy forwards /api/* to the backend container.
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: orbit-frontend-dev
+    ports:
+      - "5173:5173"           # Vite dev server with HMR
+    volumes:
+      - ./frontend:/app       # Bind-mount full frontend source
+      - /app/node_modules     # Anonymous volume to prevent host override of node_modules
+    environment:
+      - VITE_API_BASE=http://orbit-backend-dev:5000
+    networks:
+      - orbit-dev-network
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+networks:
+  orbit-dev-network:
+    driver: bridge
