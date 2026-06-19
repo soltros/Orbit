@@ -20,6 +20,19 @@ def setup_status():
         
     return jsonify({"needs_setup": False})
 
+@setup_bp.route('/config', methods=['GET'])
+def get_config():
+    """Returns the current configuration (with passwords/keys masked or omitted for security)."""
+    return jsonify({
+        "SUBSONIC_URL": current_app.config.get('SUBSONIC_URL', ''),
+        "SUBSONIC_USER": current_app.config.get('SUBSONIC_USER', ''),
+        "RECOMMENDATION_MODE": current_app.config.get('RECOMMENDATION_MODE', 'local'),
+        "LLM_PROVIDER": current_app.config.get('LLM_PROVIDER', 'openai'),
+        "HAS_OPENAI_KEY": bool(current_app.config.get('OPENAI_API_KEY')),
+        "HAS_ANTHROPIC_KEY": bool(current_app.config.get('ANTHROPIC_API_KEY')),
+        "HAS_LASTFM_KEY": bool(current_app.config.get('LASTFM_API_KEY'))
+    })
+
 @setup_bp.route('/save', methods=['POST'])
 def save_settings():
     """Saves persistent configuration to settings.json and live-reloads config."""

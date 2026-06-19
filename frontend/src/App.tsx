@@ -6,11 +6,13 @@ import { DiscoveryHub } from './components/DiscoveryHub';
 import { ArtistBrowser } from './components/ArtistBrowser';
 import { LoginView } from './components/LoginView';
 import { SetupWizard } from './components/SetupWizard';
-import { Radio, AlertTriangle, Users, LogOut, RefreshCw } from 'lucide-react';
+import { SettingsModal } from './components/SettingsModal';
+import { Radio, AlertTriangle, Users, LogOut, RefreshCw, Settings } from 'lucide-react';
 
 const OrbitApp: React.FC = () => {
   const { error, currentTrack, acousticStats } = useAudioPlayer();
   const [browserOpen, setBrowserOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isSetupNeeded, setIsSetupNeeded] = useState<boolean | null>(null);
   
@@ -131,6 +133,15 @@ const OrbitApp: React.FC = () => {
           </button>
 
           <button
+            onClick={() => setSettingsOpen(true)}
+            title="Settings"
+            className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/5 px-3 py-1.5 rounded-lg transition duration-150"
+          >
+            <Settings className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Settings</span>
+          </button>
+
+          <button
             onClick={handleLogout}
             title="Log out"
             className="flex items-center gap-1.5 text-xs font-semibold text-red-400 hover:text-red-300 bg-red-500/5 hover:bg-red-500/10 border border-red-500/10 px-3 py-1.5 rounded-lg transition duration-150"
@@ -178,6 +189,12 @@ const OrbitApp: React.FC = () => {
       {browserOpen && (
         <ArtistBrowser onClose={() => setBrowserOpen(false)} />
       )}
+
+      {/* Settings Modal — rendered at root so it overlays everything */}
+      <SettingsModal
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+      />
     </div>
   );
 };
