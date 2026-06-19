@@ -237,6 +237,12 @@ def generate_queue():
             
         db.session.commit()
         
+        # Trigger background buffering if enabled
+        from app.routes.subsonic_routes import trigger_buffer_tracks
+        track_ids_to_buffer = [item.track_id for item in added_items]
+        if track_ids_to_buffer:
+            trigger_buffer_tracks(track_ids_to_buffer, current_app._get_current_object())
+        
         return jsonify({
             "status": "success",
             "message": f"Successfully added {len(added_items)} recommendations to the queue.",

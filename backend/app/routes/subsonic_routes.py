@@ -1,7 +1,51 @@
+import os
+import threading
 import requests
-from flask import Blueprint, current_app, jsonify, request, Response, stream_with_context
+from flask import Blueprint, current_app, jsonify, request, Response, stream_with_context, send_file
 from app.subsonic import SubsonicClient
 from app.models import Track
+
+CACHE_DIR = "/tmp/orbit_cache"
+os.makedirs(CACHE_DIR, exist_ok=True)
+
+def buffer_track(track_id, app_config):
+    """Background task to download a track into the local cache."""
+    cache_path = os.path.join(CACHE_DIR, track_id)
+    if os.path.exists(cache_path):
+        return
+
+    try:
+        client = SubsonicClient(
+            base_url=app_config['SUBSONIC_URL'],
+            username=app_config['SUBSONIC_USER'],
+            password=app_config['SUBSONIC_PASS']
+        )
+        url = client.get_stream_url(track_id)
+        req = requests.get(url, stream=True, timeout=30)
+        req.raise_for_status()
+        
+        # Download to a temporary file first to avoid serving incomplete files
+        temp_path = cache_path + ".tmp"
+        with open(temp_path, 'wb') as f:
+            for chunk in req.iter_content(chunk_size=65536):
+                f.write(chunk)
+        os.rename(temp_path, cache_path)
+    except Exception as e:
+        print(f"Failed to buffer track {track_id}: {str(e)}")
+
+def trigger_buffer_tracks(track_ids, app):
+    """Triggers background buffering for a list of tracks if enabled."""
+    if not app.config.get("ENABLE_LOCAL_BUFFERING", False):
+        return
+        
+    config_copy = {
+        'SUBSONIC_URL': app.config.get('SUBSONIC_URL'),
+        'SUBSONIC_USER': app.config.get('SUBSONIC_USER'),
+        'SUBSONIC_PASS': app.config.get('SUBSONIC_PASS')
+    }
+    
+    for tid in track_ids:
+        threading.Thread(target=buffer_track, args=(tid, config_copy)).start()
 
 subsonic_bp = Blueprint('subsonic', __name__, url_prefix='/api/subsonic')
 
@@ -65,6 +109,17 @@ def unstar_track(track_id):
 @subsonic_bp.route('/stream/<track_id>', methods=['GET'])
 def stream_track(track_id):
     try:
+        # If buffering is enabled and the file is already cached, stream it directly
+        if current_app.config.get("ENABLE_LOCAL_BUFFERING", False):
+            cache_path = os.path.join(CACHE_DIR, track_id)
+            if os.path.exists(cache_path):
+                # Also start buffering the next tracks maybe? Handled by the queue generation.
+                return send_file(cache_path, conditional=True)
+                
+            # If it's not cached yet but buffering is enabled, start buffering it now 
+            # while we fall back to proxying the stream
+            trigger_buffer_tracks([track_id], current_app)
+
         client = get_subsonic_client()
         url = client.get_stream_url(track_id)
         
