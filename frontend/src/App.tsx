@@ -7,11 +7,13 @@ import { ArtistBrowser } from './components/ArtistBrowser';
 import { LoginView } from './components/LoginView';
 import { SetupWizard } from './components/SetupWizard';
 import { SettingsModal } from './components/SettingsModal';
-import { Radio, AlertTriangle, Users, LogOut, RefreshCw, Settings } from 'lucide-react';
+import { FavoritesModal } from './components/FavoritesModal';
+import { Radio, AlertTriangle, Users, LogOut, RefreshCw, Settings, Heart } from 'lucide-react';
 
 const OrbitApp: React.FC = () => {
   const { error, currentTrack, acousticStats } = useAudioPlayer();
   const [browserOpen, setBrowserOpen] = useState(false);
+  const [favoritesOpen, setFavoritesOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -125,13 +127,24 @@ const OrbitApp: React.FC = () => {
         <div className="flex items-center gap-3">
           {/* Browse Artists button — always visible when tracks are synced */}
           {hasTracks && (
-            <button
-              onClick={() => setBrowserOpen(true)}
-              className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/5 px-3 py-1.5 rounded-lg transition duration-150"
-            >
-              <Users className="w-3.5 h-3.5" />
-              Artists
-            </button>
+            <>
+              <button
+                onClick={() => setFavoritesOpen(true)}
+                title="View Orbit Favorites"
+                className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 px-3 py-1.5 rounded-lg transition duration-150"
+              >
+                <Heart className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Favorites</span>
+              </button>
+
+              <button
+                onClick={() => setBrowserOpen(true)}
+                className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/5 px-3 py-1.5 rounded-lg transition duration-150"
+              >
+                <Users className="w-3.5 h-3.5" />
+                Artists
+              </button>
+            </>
           )}
 
           <button
@@ -221,6 +234,25 @@ const OrbitApp: React.FC = () => {
       <SettingsModal
         isOpen={settingsOpen}
         onClose={() => setSettingsOpen(false)}
+      />
+
+      <FavoritesModal
+        isOpen={favoritesOpen}
+        onClose={() => setFavoritesOpen(false)}
+        onSeed={async (trackId) => {
+          // Send request to seed by track
+          try {
+            await fetch('/api/library/seed', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ type: 'track', id: trackId })
+            });
+            await fetch('/api/queue/clear', { method: 'POST' });
+            window.location.reload();
+          } catch (err) {
+            console.error('Failed to seed from favorite', err);
+          }
+        }}
       />
     </div>
   );

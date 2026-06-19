@@ -16,7 +16,29 @@ def get_profile():
             "profile": user.to_dict()
         }), 200
     except Exception as e:
-        current_app.logger.error(f"Error fetching profile: {str(e)}")
+        return jsonify({"status": "error", "message": "An internal error occurred."}), 500
+
+@profile_bp.route('/favorites', methods=['GET'])
+def get_favorites():
+    try:
+        user = get_or_create_default_user()
+        history_items = InteractionHistory.query.filter_by(user_id=user.id, action='like').order_by(InteractionHistory.timestamp.desc()).all()
+        
+        # We need distinct tracks. A user could theoretically like a track multiple times if we allow toggling, 
+        # but dislike un-likes it. We'll just grab unique tracks.
+        seen = set()
+        favorites = []
+        for h in history_items:
+            if h.track and h.track.id not in seen:
+                seen.add(h.track.id)
+                favorites.append(h.track.to_dict())
+                
+        return jsonify({
+            "status": "success",
+            "favorites": favorites
+        }), 200
+    except Exception as e:
+        current_app.logger.error(f"Error fetching favorites: {str(e)}")
         return jsonify({"status": "error", "message": "An internal error occurred."}), 500
 
 @profile_bp.route('/regenerate', methods=['POST'])
