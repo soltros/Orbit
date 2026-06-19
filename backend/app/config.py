@@ -27,5 +27,5 @@ class Config:
     RECOMMENDATION_MODE = os.environ.get("RECOMMENDATION_MODE", "llm")
     
     # Optional local track buffering to avoid constant remote streaming connections
-    ENABLE_LOCAL_BUFFERING = os.environ.get("ENABLE_LOCAL_BUFFERING", "false").lower() == "true"
+    ENABLE_LOCAL_BUFFERING = os.environ.get("ENABLE_LOCAL_BUFFERING", "true").lower() == "true"
 
