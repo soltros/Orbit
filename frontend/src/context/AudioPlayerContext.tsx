@@ -62,6 +62,7 @@ interface AudioPlayerContextType {
   clearQueue: () => Promise<void>;
   setRecommendationMode: (mode: 'llm' | 'local') => Promise<void>;
   refreshStats: () => Promise<void>;
+  startStation: () => Promise<void>;
 }
 
 const AudioPlayerContext = createContext<AudioPlayerContextType | undefined>(undefined);
@@ -170,12 +171,18 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   }, [currentTrack]);
 
-  // Synchronize queue size: trigger auto-replenishment when queue falls < 3
+  // Synchronize queue size:
+  // - If queue is empty but tracks exist in DB → auto-generate and play
+  // - If queue is running low (< 3) → top it up silently
   useEffect(() => {
-    if (upcomingQueue.length < 3 && upcomingQueue.length > 0 && !isGeneratingRef.current) {
-      triggerQueueGeneration();
+    const cachedTracks = acousticStats?.cached_tracks ?? 0;
+    if (upcomingQueue.length === 0 && !currentTrack && cachedTracks > 0 && !isGeneratingRef.current) {
+      // Initial boot: library is synced but nothing is playing yet
+      triggerQueueGeneration(true);
+    } else if (upcomingQueue.length > 0 && upcomingQueue.length < 3 && !isGeneratingRef.current) {
+      triggerQueueGeneration(false);
     }
-  }, [upcomingQueue]);
+  }, [upcomingQueue, acousticStats]);
 
   // Volume persistent store
   const setVolume = (vol: number) => {
@@ -203,9 +210,10 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   };
 
-  const triggerQueueGeneration = async () => {
+  const triggerQueueGeneration = async (autoPlay = false) => {
     if (isGeneratingRef.current) return;
     isGeneratingRef.current = true;
+    setIsLoading(true);
     try {
       const res = await fetch('/api/queue/generate', {
         method: 'POST',
@@ -214,14 +222,23 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       });
       const data = await res.json();
       if (data.status === 'success') {
-        // Re-load queue
         await refreshQueue();
+        // Auto-play first track on initial station boot
+        if (autoPlay && data.recommendations && data.recommendations.length > 0) {
+          await playTrack(data.recommendations[0]);
+        }
       }
     } catch (err) {
       console.error("Queue replenishment failed: ", err);
     } finally {
       isGeneratingRef.current = false;
+      setIsLoading(false);
     }
+  };
+
+  // Manual "Start Station" trigger — called by the UI button
+  const startStation = async () => {
+    await triggerQueueGeneration(true);
   };
 
   const triggerPrefetch = () => {
@@ -533,7 +550,8 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       regenerateProfile,
       clearQueue,
       setRecommendationMode,
-      refreshStats
+      refreshStats,
+      startStation
     }}>
       {children}
     </AudioPlayerContext.Provider>

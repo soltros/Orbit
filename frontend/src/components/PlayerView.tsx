@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAudioPlayer } from '../context/AudioPlayerContext';
-import { Play, Pause, SkipForward, Volume2, VolumeX, Heart, ThumbsDown } from 'lucide-react';
+import { Play, Pause, SkipForward, Volume2, VolumeX, Heart, ThumbsDown, Radio } from 'lucide-react';
 
 export const PlayerView: React.FC = () => {
   const {
@@ -17,7 +17,9 @@ export const PlayerView: React.FC = () => {
     dislikeTrack,
     seek,
     setVolume,
-    toggleMute
+    toggleMute,
+    startStation,
+    acousticStats,
   } = useAudioPlayer();
 
   const formatTime = (secs: number) => {
@@ -36,6 +38,7 @@ export const PlayerView: React.FC = () => {
   };
 
   const hasTrack = !!currentTrack;
+  const hasSyncedTracks = (acousticStats?.cached_tracks ?? 0) > 0;
 
   return (
     <div className="flex flex-col items-center justify-between w-full max-w-md mx-auto p-6 bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl shadow-2xl">
@@ -80,10 +83,25 @@ export const PlayerView: React.FC = () => {
             <p className="text-sm font-medium text-indigo-400 mt-1 truncate">{currentTrack.track.artist}</p>
             <p className="text-xs text-gray-500 mt-0.5 truncate">{currentTrack.track.album || 'No Album'}</p>
           </>
+        ) : hasSyncedTracks ? (
+          /* Library is synced — show Start Station CTA */
+          <>
+            <h2 className="text-xl font-bold text-gray-200">Ready to Play</h2>
+            <p className="text-sm text-gray-500 mt-1">{acousticStats!.cached_tracks} tracks in library</p>
+            <button
+              onClick={startStation}
+              disabled={isLoading}
+              className="mt-3 mx-auto flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 text-white text-sm font-bold rounded-full shadow-lg shadow-indigo-500/30 transition duration-200 disabled:opacity-50"
+            >
+              <Radio className="w-4 h-4" />
+              {isLoading ? 'Starting...' : 'Start Station'}
+            </button>
+          </>
         ) : (
+          /* Nothing synced yet */
           <>
             <h2 className="text-xl font-bold text-gray-400">Station Offline</h2>
-            <p className="text-sm text-gray-500 mt-1">Ready to start streaming music.</p>
+            <p className="text-sm text-gray-500 mt-1">Run <code className="text-indigo-400 text-xs">flask sync-subsonic</code> to load your library.</p>
           </>
         )}
       </div>
