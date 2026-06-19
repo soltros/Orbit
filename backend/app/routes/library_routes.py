@@ -25,7 +25,8 @@ def get_artists():
         query = (
             db.session.query(
                 Track.artist,
-                func.count(Track.id).label('track_count')
+                func.count(Track.id).label('track_count'),
+                func.min(Track.id).label('sample_track_id')
             )
             .group_by(Track.artist)
         )
@@ -40,6 +41,7 @@ def get_artists():
             artists.append({
                 "name": row.artist,
                 "track_count": row.track_count,
+                "sample_track_id": row.sample_track_id
             })
 
         return jsonify({"status": "success", "artists": artists, "total": len(artists)}), 200

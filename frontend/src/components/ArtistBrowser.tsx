@@ -7,6 +7,7 @@ import {
 interface Artist {
   name: string;
   track_count: number;
+  sample_track_id?: string;
 }
 
 interface Track {
@@ -291,7 +292,21 @@ export const ArtistBrowser: React.FC<ArtistBrowserProps> = ({ onClose }) => {
                             }
                           </div>
 
-                          {/* Artist name + track count */}
+                          {/* Artist Image & Name */}
+                            <div className="w-10 h-10 flex-shrink-0 rounded-full bg-slate-800 flex items-center justify-center border border-indigo-500/20 group-hover:border-indigo-500/50 transition overflow-hidden shadow-lg">
+                              {artist.sample_track_id ? (
+                                <img 
+                                  src={`/api/subsonic/cover/${artist.sample_track_id}`} 
+                                  alt={artist.name} 
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = '/icon.svg';
+                                  }}
+                                />
+                              ) : (
+                                <Users className="w-4 h-4 text-indigo-400" />
+                              )}
+                            </div>
                           <div className="truncate">
                             <span className={`text-sm font-semibold truncate ${isExpanded ? 'text-white' : 'text-gray-200 group-hover:text-white'}`}>
                               {artist.name}
@@ -300,8 +315,7 @@ export const ArtistBrowser: React.FC<ArtistBrowserProps> = ({ onClose }) => {
                               {artist.track_count} {artist.track_count === 1 ? 'track' : 'tracks'}
                             </span>
                           </div>
-                        </div>
-
+                          </div>
                         {/* Seed from random track button */}
                         <button
                           onClick={(e) => handleSeedArtist(artist.name, e)}
@@ -377,23 +391,41 @@ export const ArtistBrowser: React.FC<ArtistBrowserProps> = ({ onClose }) => {
 
         {tab === 'genres' && (
           <div className="flex-1 overflow-y-auto px-4 py-4 pb-8 space-y-2 no-scrollbar">
-            <div className="grid grid-cols-2 gap-3">
-              {genres.map(genre => (
-                <button
-                  key={genre}
-                  onClick={async () => {
-                    setSeeding(true);
-                    await seedStation({ genre: genre });
-                    setSeeding(false);
-                    onClose();
-                  }}
-                  disabled={seeding}
-                  className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-indigo-500/10 hover:border-indigo-500/20 hover:text-indigo-300 transition text-sm font-semibold text-gray-300 text-left group disabled:opacity-50"
-                >
-                  {genre}
-                  <Shuffle className="w-4 h-4 text-gray-600 group-hover:text-indigo-400 transition" />
-                </button>
-              ))}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-2">
+              {genres.map((genre, i) => {
+                // Generate a vibrant color gradient based on the genre name length/chars
+                const hue1 = (genre.length * 25) % 360;
+                const hue2 = (genre.charCodeAt(0) * 15) % 360;
+                
+                return (
+                  <button
+                    key={genre}
+                    onClick={async () => {
+                      setSeeding(true);
+                      await seedStation({ genre });
+                      setSeeding(false);
+                      onClose();
+                    }}
+                    className="relative group overflow-hidden rounded-2xl aspect-video border border-white/10 hover:border-white/30 transition duration-300 shadow-xl"
+                  >
+                    {/* Dynamic Gradient Background */}
+                    <div 
+                      className="absolute inset-0 opacity-80 group-hover:opacity-100 transition duration-300"
+                      style={{
+                        background: `linear-gradient(135deg, hsl(${hue1}, 80%, 40%), hsl(${hue2}, 80%, 30%))`
+                      }}
+                    />
+                    
+                    {/* Inner Content */}
+                    <div className="absolute inset-0 p-4 flex flex-col items-center justify-center text-center z-10 bg-black/20 group-hover:bg-transparent transition duration-300">
+                      <Disc className="w-6 h-6 text-white/80 mb-2 drop-shadow-md group-hover:scale-110 transition duration-300" />
+                      <span className="text-sm font-bold text-white uppercase tracking-wider drop-shadow-lg leading-tight">
+                        {genre}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
             {genres.length === 0 && (
                <p className="text-center text-sm text-gray-500 py-10">No curated genres found.</p>
