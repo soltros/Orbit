@@ -60,9 +60,17 @@ def trigger_buffer_tracks(track_ids, app):
 subsonic_bp = Blueprint('subsonic', __name__, url_prefix='/api/subsonic')
 
 def get_subsonic_client():
-    url = session.get('subsonic_url') or current_app.config.get('SUBSONIC_URL')
-    user = session.get('subsonic_user') or current_app.config.get('SUBSONIC_USER')
-    password = session.get('subsonic_pass') or current_app.config.get('SUBSONIC_PASS')
+    from flask import has_request_context
+    url = user = password = None
+    
+    if has_request_context():
+        url = session.get('subsonic_url')
+        user = session.get('subsonic_user')
+        password = session.get('subsonic_pass')
+        
+    url = url or current_app.config.get('SUBSONIC_URL')
+    user = user or current_app.config.get('SUBSONIC_USER')
+    password = password or current_app.config.get('SUBSONIC_PASS')
     
     if not url or not user or not password:
         raise Exception("Authentication required. Please log in.")
