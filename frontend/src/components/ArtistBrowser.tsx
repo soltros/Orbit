@@ -411,6 +411,6 @@ export const ArtistBrowser: React.FC<ArtistBrowserProps> = ({ onClose }) => {
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 };
