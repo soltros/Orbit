@@ -67,9 +67,9 @@ services:
       - FLASK_ENV=development
       - FLASK_APP=wsgi.py
       - DATABASE_PATH=${DATABASE_PATH:-/app/data/orbit_dev.db}
-      - SUBSONIC_URL=${SUBSONIC_URL:-http://orbit-mock-subsonic:4533}
-      - SUBSONIC_USER=${SUBSONIC_USER:-dev}
-      - SUBSONIC_PASS=${SUBSONIC_PASS:-dev}
+      - SUBSONIC_URL=${SUBSONIC_URL}
+      - SUBSONIC_USER=${SUBSONIC_USER}
+      - SUBSONIC_PASS=${SUBSONIC_PASS}
       - LLM_PROVIDER=${LLM_PROVIDER:-openai}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}

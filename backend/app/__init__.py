@@ -38,7 +38,10 @@ def create_app(config_class=Config):
     from app.routes.playlist_routes import playlist_bp
     from app.routes.library_routes import library_bp
     
+    from app.routes.setup_routes import setup_bp
+    
     app.register_blueprint(auth_bp)
+    app.register_blueprint(setup_bp)
     app.register_blueprint(subsonic_bp)
     app.register_blueprint(queue_bp)
     app.register_blueprint(profile_bp)

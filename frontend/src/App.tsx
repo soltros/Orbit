@@ -5,14 +5,33 @@ import { QueueView } from './components/QueueView';
 import { DiscoveryHub } from './components/DiscoveryHub';
 import { ArtistBrowser } from './components/ArtistBrowser';
 import { LoginView } from './components/LoginView';
+import { SetupWizard } from './components/SetupWizard';
 import { Radio, AlertTriangle, Users, LogOut, RefreshCw } from 'lucide-react';
 
 const OrbitApp: React.FC = () => {
   const { error, currentTrack, acousticStats } = useAudioPlayer();
   const [browserOpen, setBrowserOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isSetupNeeded, setIsSetupNeeded] = useState<boolean | null>(null);
 
   const hasTracks = (acousticStats?.cached_tracks ?? 0) > 0;
+
+  React.useEffect(() => {
+    fetch('/api/setup/status')
+      .then(res => res.json())
+      .then(data => {
+        setIsSetupNeeded(data.needs_setup);
+      })
+      .catch(() => setIsSetupNeeded(false)); // fallback
+  }, []);
+
+  if (isSetupNeeded === null) {
+    return <div className="min-h-screen bg-[#050508]"></div>;
+  }
+
+  if (isSetupNeeded) {
+    return <SetupWizard onComplete={() => setIsSetupNeeded(false)} />;
+  }
 
   if (!isAuthenticated) {
     return <LoginView onLoginSuccess={() => setIsAuthenticated(true)} />;
