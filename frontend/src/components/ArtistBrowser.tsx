@@ -400,7 +400,6 @@ export const ArtistBrowser: React.FC<ArtistBrowserProps> = ({ onClose }) => {
             )}
           </div>
         )}
-      </div>
 
         {/* Bottom loading overlay */}
         {seeding && (
@@ -411,6 +410,6 @@ export const ArtistBrowser: React.FC<ArtistBrowserProps> = ({ onClose }) => {
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 };
