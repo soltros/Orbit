@@ -91,7 +91,7 @@ const OrbitApp: React.FC = () => {
           </div>
           <div>
             <h1 className="text-md font-bold tracking-widest text-white uppercase">Orbit</h1>
-            <p className="text-[9px] text-gray-500 tracking-wider">AI PERSONAL RADIO</p>
+            <p className="text-[9px] text-gray-500 tracking-wider">INTELLIGENT JUKEBOX</p>
           </div>
         </div>
 

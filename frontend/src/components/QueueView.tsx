@@ -13,7 +13,7 @@ export const QueueView: React.FC = () => {
       <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-3">
         <h3 className="text-md font-bold text-gray-200 flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-indigo-400" />
-          Rolling AI Queue
+          Dynamic Rolling Queue
         </h3>
         <span className="text-xs font-semibold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full">
           {upcomingQueue.length} upcoming

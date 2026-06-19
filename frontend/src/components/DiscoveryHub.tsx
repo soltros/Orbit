@@ -68,7 +68,7 @@ export const DiscoveryHub: React.FC = () => {
           }`}
         >
           <BrainCircuit className="w-3.5 h-3.5" />
-          AI Cloud DJ
+          Cloud DJ
         </button>
         <button
           onClick={() => setRecommendationMode('local')}

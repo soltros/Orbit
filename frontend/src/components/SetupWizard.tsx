@@ -73,7 +73,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
           </div>
           <h2 className="mt-2 text-3xl font-extrabold text-white tracking-tight">Welcome to Orbit</h2>
           <p className="mt-2 text-sm text-gray-400">
-            Let's get your personal AI radio station connected to your music.
+            Let's get your intelligent, self-hosted jukebox connected to your music.
           </p>
         </div>
 
@@ -150,7 +150,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
                 <h3 className="text-lg font-medium text-white">Step 2: Choose Engine</h3>
                 <button type="button" onClick={() => setStep(1)} className="text-xs text-indigo-400 hover:text-indigo-300">Back</button>
               </div>
-              <p className="text-xs text-gray-400">Orbit can run entirely locally, or use AI for advanced context-aware playlists.</p>
+              <p className="text-xs text-gray-400">Orbit can run entirely locally, or use an LLM for advanced context-aware playlists.</p>
               
               <div className="grid grid-cols-2 gap-4 pt-2">
                 <div 
@@ -170,7 +170,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
                 >
                   <div className="flex items-center gap-2 mb-2">
                     <Sparkles className={`w-5 h-5 ${mode === 'llm' ? 'text-violet-400' : 'text-gray-500'}`} />
-                    <span className="font-semibold text-white">AI Cloud DJ</span>
+                    <span className="font-semibold text-white">Cloud DJ</span>
                   </div>
                   <p className="text-[10px] text-gray-400">Context-aware radio. Requires OpenAI or Anthropic API key.</p>
                 </div>
