@@ -1,0 +1,19 @@
+{
+  "short_name": "Orbit",
+  "name": "Orbit Radio",
+  "description": "Self-hosted LLM-driven radio station for your Navidrome server.",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0a0a0f",
+  "theme_color": "#6366f1",
+  "display": "standalone",
+  "orientation": "portrait",
+  "status_bar": "black-translucent"
+}

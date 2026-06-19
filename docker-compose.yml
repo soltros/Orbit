@@ -1,0 +1,112 @@
+version: '3.8'
+
+services:
+  traefik:
+    image: traefik:v2.10
+    container_name: orbit-traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      # Uncomment the lines below to enable Let's Encrypt in production
+      # - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      # - "--certificatesresolvers.myresolver.acme.email=${ACME_EMAIL:-email@example.com}"
+      # - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080" # Dashboard UI (access via http://localhost:8080)
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Uncomment to persist SSL certs in production
+      # - ./docker/letsencrypt:/letsencrypt
+    networks:
+      - orbit-network
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: orbit-backend
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-this}
+      - FLASK_ENV=${FLASK_ENV:-production}
+      - DATABASE_PATH=${DATABASE_PATH:-/app/data/orbit.db}
+      - SUBSONIC_URL=${SUBSONIC_URL}
+      - SUBSONIC_USER=${SUBSONIC_USER}
+      - SUBSONIC_PASS=${SUBSONIC_PASS}
+      - LLM_PROVIDER=${LLM_PROVIDER:-openai}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    volumes:
+      - db-data:/app/data
+      - ${MUSIC_DIR:-/music}:/music
+    networks:
+      - orbit-network
+    labels:
+      - "traefik.enable=true"
+      # Route both /api and /rest (Subsonic rest API proxy) to the backend
+      - "traefik.http.routers.backend.rule=Host(`${DOMAIN_NAME:-orbit.localhost}`) && (PathPrefix(`/api`) || PathPrefix(`/rest`))"
+      - "traefik.http.routers.backend.entrypoints=web"
+      - "traefik.http.services.backend.loadbalancer.server.port=5000"
+      
+      # Optional: Enable SSL secure router if production certificates are active
+      # - "traefik.http.routers.backend-secure.rule=Host(`${DOMAIN_NAME:-orbit.localhost}`) && (PathPrefix(`/api`) || PathPrefix(`/rest`))"
+      # - "traefik.http.routers.backend-secure.entrypoints=websecure"
+      # - "traefik.http.routers.backend-secure.tls=true"
+      # - "traefik.http.routers.backend-secure.tls.certresolver=myresolver"
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: orbit-worker
+    command: python worker.py
+    environment:
+      - DATABASE_PATH=${DATABASE_PATH:-/app/data/orbit.db}
+      - MUSIC_DIR_CONTAINER=/music
+      - MUSIC_DIR_HOST=${MUSIC_DIR:-/music}
+    volumes:
+      - db-data:/app/data
+      - ${MUSIC_DIR:-/music}:/music:ro
+    networks:
+      - orbit-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: orbit-frontend
+    networks:
+      - orbit-network
+    labels:
+      - "traefik.enable=true"
+      # Route everything else to the frontend container
+      - "traefik.http.routers.frontend.rule=Host(`${DOMAIN_NAME:-orbit.localhost}`)"
+      - "traefik.http.routers.frontend.entrypoints=web"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
+      
+      # Optional: Enable SSL secure router if production certificates are active
+      # - "traefik.http.routers.frontend-secure.rule=Host(`${DOMAIN_NAME:-orbit.localhost}`)"
+      # - "traefik.http.routers.frontend-secure.entrypoints=websecure"
+      # - "traefik.http.routers.frontend-secure.tls=true"
+      # - "traefik.http.routers.frontend-secure.tls.certresolver=myresolver"
+    restart: unless-stopped
+
+volumes:
+  db-data:
+    driver: local
+
+networks:
+  orbit-network:
+    driver: bridge

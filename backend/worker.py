@@ -1,0 +1,187 @@
+import os
+import time
+import logging
+import librosa
+import numpy as np
+from app import create_app, db
+from app.models import Track
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    handlers=[
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger("orbit-worker")
+
+# Initialize Flask app context to access SQLAlchemy models
+app = create_app()
+
+def resolve_container_path(subsonic_path, base_music_dir="/music"):
+    """
+    Resolves the physical track path inside the docker container.
+    Handles relative path joins and folder structure differences.
+    """
+    if not subsonic_path:
+        return None
+        
+    # Standardize separator
+    clean_path = subsonic_path.replace('\\', '/')
+    
+    # Candidate 1: Direct join
+    path1 = os.path.join(base_music_dir, clean_path.lstrip('/'))
+    if os.path.exists(path1):
+        return path1
+        
+    # Candidate 2: Strip top folder (e.g. "Music/Artist/Song.mp3" -> "/music/Artist/Song.mp3")
+    parts = clean_path.strip('/').split('/')
+    if len(parts) > 1:
+        path2 = os.path.join(base_music_dir, *parts[1:])
+        if os.path.exists(path2):
+            return path2
+            
+    # Candidate 3: Filename matching fallback
+    filename = parts[-1]
+    # Search for filename inside base_music_dir (limit search space to prevent CPU lock)
+    for root, dirs, files in os.walk(base_music_dir):
+        if filename in files:
+            return os.path.join(root, filename)
+            
+    return path1
+
+def extract_acoustic_features(file_path):
+    """
+    Extracts a 27-dimensional acoustic feature vector from the raw audio file:
+    - Tempo/BPM (1 dim)
+    - Energy/Flux (1 dim)
+    - Chromagram key profile (12 dims)
+    - Timbre MFCCs (13 dims)
+    Analyzes only the middle 30 seconds of the file to protect CPU resource usage.
+    """
+    logger.info(f"Loading audio from: {file_path}")
+    
+    # 1. Fetch duration and load middle 30 seconds
+    duration = librosa.get_duration(path=file_path)
+    offset = max(0.0, (duration - 30.0) / 2.0)
+    
+    y, sr = librosa.load(file_path, sr=22050, offset=offset, duration=30.0)
+    
+    # 2. Extract Tempo / BPM
+    tempo, _ = librosa.beat.beat_track(y=y, sr=sr)
+    if isinstance(tempo, np.ndarray):
+        tempo = float(tempo[0])
+    else:
+        tempo = float(tempo)
+        
+    # 3. Extract Chromagram (Key profile)
+    chroma = librosa.feature.chroma_cqt(y=y, sr=sr)
+    chroma_mean = np.mean(chroma, axis=1) # 12 dimensions
+    
+    # Estimating Key via profiles (Krumhansl-Schmuckler correlations)
+    key_names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+    major_profile = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88]
+    minor_profile = [6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17]
+    
+    best_key = "Unknown"
+    max_corr = -1.0
+    
+    for i in range(12):
+        rolled = np.roll(chroma_mean, -i)
+        corr_maj = np.corrcoef(rolled, major_profile)[0, 1]
+        corr_min = np.corrcoef(rolled, minor_profile)[0, 1]
+        
+        if corr_maj > max_corr:
+            max_corr = corr_maj
+            best_key = f"{key_names[i]} Major"
+        if corr_min > max_corr:
+            max_corr = corr_min
+            best_key = f"{key_names[i]} Minor"
+            
+    # 4. Extract Spectral Flux (Energy)
+    onset_env = librosa.onset.onset_strength(y=y, sr=sr)
+    energy = float(np.mean(onset_env))
+    normalized_energy = min(1.0, max(0.0, energy / 10.0))
+    
+    # 5. Extract Timbre (MFCCs)
+    mfccs = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)
+    mfccs_mean = np.mean(mfccs, axis=1) # 13 dimensions
+    
+    # Standardize scales of combined feature vector
+    embedding = [
+        tempo / 200.0, # Scale bpm
+        normalized_energy
+    ]
+    embedding.extend(chroma_mean.tolist()) # Add chroma key features (0 to 1 scale)
+    embedding.extend((mfccs_mean / 100.0).tolist()) # Add scaled MFCC features
+    
+    return {
+        "bpm": int(round(tempo)) if tempo else None,
+        "key": best_key,
+        "energy": normalized_energy,
+        "embedding": embedding
+    }
+
+def process_single_track(track):
+    """Processes a single pending track, saving results to the SQLite database."""
+    logger.info(f"Processing track: {track.title} - {track.artist} (ID: {track.id})")
+    
+    resolved_path = resolve_container_path(track.path)
+    if not resolved_path or not os.path.exists(resolved_path):
+        error_msg = f"Audio file not found at container path: {resolved_path or track.path}"
+        logger.error(error_msg)
+        track.acoustic_status = 'failed'
+        track.acoustic_error = error_msg
+        db.session.commit()
+        return False
+        
+    try:
+        features = extract_acoustic_features(resolved_path)
+        
+        # Save updates
+        track.acoustic_embedding = features["embedding"]
+        track.key = features["key"]
+        track.energy = features["energy"]
+        # Update BPM if not already set by mutagen tags
+        if not track.bpm:
+            track.bpm = features["bpm"]
+            
+        track.acoustic_status = 'completed'
+        track.acoustic_error = None
+        db.session.commit()
+        
+        logger.info(f"Successfully analyzed: {track.title} (Key: {track.key}, Energy: {track.energy:.2f})")
+        return True
+    except Exception as e:
+        error_msg = f"Analysis pipeline failed: {str(e)}"
+        logger.error(error_msg)
+        track.acoustic_status = 'failed'
+        track.acoustic_error = error_msg
+        db.session.commit()
+        return False
+
+def run_worker_loop():
+    logger.info("Orbit acoustic analysis worker started successfully.")
+    
+    while True:
+        try:
+            with app.app_context():
+                # Fetch next pending track
+                track = Track.query.filter_by(acoustic_status='pending').first()
+                
+                if track:
+                    # Mark as processing immediately to lock it
+                    track.acoustic_status = 'processing'
+                    db.session.commit()
+                    
+                    process_single_track(track)
+                else:
+                    # No pending tracks, sleep and wait
+                    time.sleep(5)
+        except Exception as e:
+            logger.error(f"Worker loop exception: {str(e)}")
+            time.sleep(10)
+
+if __name__ == "__main__":
+    run_worker_loop()

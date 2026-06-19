@@ -1,0 +1,74 @@
+import React from 'react';
+import { AudioPlayerProvider, useAudioPlayer } from './context/AudioPlayerContext';
+import { PlayerView } from './components/PlayerView';
+import { QueueView } from './components/QueueView';
+import { DiscoveryHub } from './components/DiscoveryHub';
+import { Radio, AlertTriangle } from 'lucide-react';
+
+const OrbitApp: React.FC = () => {
+  const { error } = useAudioPlayer();
+
+  return (
+    <div className="flex flex-col min-h-screen bg-[#050508] text-gray-100 pb-12">
+      {/* Background visual decoration */}
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-900/10 rounded-full blur-[100px] pointer-events-none animate-pulse-slow"></div>
+      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-violet-900/10 rounded-full blur-[100px] pointer-events-none animate-pulse-slow"></div>
+
+      {/* Header */}
+      <header className="w-full max-w-5xl mx-auto px-6 py-5 flex items-center justify-between border-b border-white/5 backdrop-blur-md sticky top-0 z-50">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <Radio className="w-4.5 h-4.5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-md font-bold tracking-widest text-white uppercase">Orbit</h1>
+            <p className="text-[9px] text-gray-500 tracking-wider">AI PERSONAL RADIO</p>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+          <span className="text-[10px] font-bold tracking-wide text-gray-400 uppercase">Live Connection</span>
+        </div>
+      </header>
+
+      {/* Error Alert Bar */}
+      {error && (
+        <div className="w-full max-w-md mx-auto mt-4 px-4">
+          <div className="flex items-center gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-xs text-amber-400 font-medium">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+            {error}
+          </div>
+        </div>
+      )}
+
+      {/* Main Grid Layout */}
+      <main className="flex-grow w-full max-w-5xl mx-auto px-6 py-6 grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+        {/* Left Side: Discovery & Stats */}
+        <div className="md:col-span-4 order-3 md:order-1 flex flex-col gap-6">
+          <DiscoveryHub />
+        </div>
+
+        {/* Center: Audio Player */}
+        <div className="md:col-span-4 order-1 md:order-2 flex flex-col items-center">
+          <PlayerView />
+        </div>
+
+        {/* Right Side: Rolling Queue */}
+        <div className="md:col-span-4 order-2 md:order-3 flex flex-col gap-6">
+          <QueueView />
+        </div>
+      </main>
+    </div>
+  );
+};
+
+function App() {
+  return (
+    <AudioPlayerProvider>
+      <OrbitApp />
+    </AudioPlayerProvider>
+  );
+}
+
+export default App;
