@@ -31,6 +31,8 @@ const OrbitApp: React.FC = () => {
   React.useEffect(() => {
     if (!isAuthenticated) return;
     
+    let interval: NodeJS.Timeout;
+    
     const checkSync = async () => {
       try {
         const res = await fetch('/api/subsonic/sync/status');
@@ -40,10 +42,19 @@ const OrbitApp: React.FC = () => {
       } catch (err) {}
     };
 
-    checkSync();
-    const interval = setInterval(checkSync, 3000);
-    return () => clearInterval(interval);
-  }, [isAuthenticated]);
+    // Always check once to see if a background sync is happening
+    if (!isSyncing) {
+        checkSync();
+    }
+
+    if (isSyncing) {
+      interval = setInterval(checkSync, 3000);
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isAuthenticated, isSyncing]);
 
   if (isSetupNeeded === null) {
     return <div className="min-h-screen bg-[#050508]"></div>;
