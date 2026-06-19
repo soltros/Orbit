@@ -317,10 +317,13 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
           const isSame = currentTrack?.id === data.queue.current.id;
           if (!isSame) {
             setCurrentTrack(data.queue.current);
-            if (audioRef.current && audioRef.current.src !== `/api/subsonic/stream/${data.queue.current.track.id}`) {
-              audioRef.current.src = `/api/subsonic/stream/${data.queue.current.track.id}`;
-              setProgress(0);
-              hasPrefetchedRef.current = false;
+            if (audioRef.current) {
+              const expectedPath = `/api/subsonic/stream/${data.queue.current.track.id}`;
+              if (!audioRef.current.src.endsWith(expectedPath)) {
+                audioRef.current.src = expectedPath;
+                setProgress(0);
+                hasPrefetchedRef.current = false;
+              }
             }
           }
         } else if (data.queue.upcoming.length > 0 && !currentTrack) {
