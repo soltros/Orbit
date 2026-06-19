@@ -148,7 +148,7 @@ def generate_queue():
         user = get_or_create_default_user()
         
         # Get request options
-        req_data = request.get_json() or {}
+        req_data = request.get_json(silent=True) or {}
         try:
             requested_count = min(int(req_data.get('count', 5)), 10)
         except (ValueError, TypeError):
@@ -400,7 +400,7 @@ def recommendation_mode():
     try:
         user = get_or_create_default_user()
         if request.method == 'POST':
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             mode = data.get('mode', 'llm').lower()
             if mode not in ['llm', 'local']:
                 return jsonify({"status": "error", "message": "Invalid mode. Must be 'llm' or 'local'"}), 400

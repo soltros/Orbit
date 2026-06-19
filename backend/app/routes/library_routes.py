@@ -86,7 +86,7 @@ def seed_station():
       { "track_id": "abc123" }          — seed from a specific track
       { "artist": "Gin Blossoms" }      — seed from a random track by that artist
     """
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     track_id = data.get('track_id')
     artist_name = data.get('artist')
 
