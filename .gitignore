@@ -72,3 +72,4 @@ dev/data/*
 
 # Music files used for local testing (binary — not tracked in git)
 music_for_testing/
+/dev_screenshots
