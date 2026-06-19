@@ -11,10 +11,6 @@ def create_app(config_class=Config):
 
     # Initialize Extensions
     db.init_app(app)
-    
-    from flask_session import Session
-    app.config["SESSION_SQLALCHEMY"] = db
-    Session(app)
 
     # Ensure the SQLite database directory exists
     db_dir = os.path.dirname(app.config["DATABASE_PATH"])
