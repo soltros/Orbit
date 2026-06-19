@@ -8,6 +8,15 @@ from app.models import Track
 CACHE_DIR = "/tmp/orbit_cache"
 os.makedirs(CACHE_DIR, exist_ok=True)
 
+def clear_local_buffer():
+    """Empties the temporary audio cache directory."""
+    if os.path.exists(CACHE_DIR):
+        for f in os.listdir(CACHE_DIR):
+            try:
+                os.remove(os.path.join(CACHE_DIR, f))
+            except Exception as e:
+                pass
+
 def buffer_track(track_id, app_config):
     """Background task to download a track into the local cache."""
     cache_path = os.path.join(CACHE_DIR, track_id)

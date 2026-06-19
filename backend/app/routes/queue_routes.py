@@ -39,17 +39,17 @@ def get_effective_mode(user):
 def get_or_create_default_user():
     """Helper to ensure a default user exists for this single-user system.
     
-    Uses a try/except around the INSERT to gracefully handle the race condition
-    where multiple concurrent startup requests all attempt to create the user
-    at the same time. The first one wins; the rest fall back to a SELECT.
+    Uses the configured SUBSONIC_USER to represent the active user profile.
+    Uses a try/except around the INSERT to gracefully handle the race condition.
     """
-    user = UserProfile.query.filter_by(username="default").first()
+    username = current_app.config.get("SUBSONIC_USER") or "default"
+    user = UserProfile.query.filter_by(username=username).first()
     if user:
         return user
     try:
         # Default new users to local mode — LLM requires explicit opt-in
         user = UserProfile(
-            username="default",
+            username=username,
             llm_preferences={"recommendation_mode": "local"}
         )
         db.session.add(user)
@@ -58,7 +58,7 @@ def get_or_create_default_user():
     except Exception:
         # Another concurrent request already created the user — roll back and fetch
         db.session.rollback()
-        return UserProfile.query.filter_by(username="default").first()
+        return UserProfile.query.filter_by(username=username).first()
 
 def get_candidate_tracks(user, count=50):
     """
@@ -395,6 +395,11 @@ def clear_queue():
         user = get_or_create_default_user()
         QueueItem.query.filter_by(user_id=user.id).delete()
         db.session.commit()
+        
+        # Dump the temp buffer since the station is abandoned
+        from app.routes.subsonic_routes import clear_local_buffer
+        clear_local_buffer()
+        
         return jsonify({"status": "success", "message": "Queue cleared successfully."}), 200
     except Exception as e:
         db.session.rollback()

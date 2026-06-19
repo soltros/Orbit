@@ -116,6 +116,11 @@ def seed_station():
 
         # Clear any existing queue so the seed starts fresh
         QueueItem.query.filter_by(user_id=user.id).delete()
+        db.session.commit()
+        
+        # Dump the temp buffer since the old station was abandoned
+        from app.routes.subsonic_routes import clear_local_buffer
+        clear_local_buffer()
 
         # Add the seed track as the first item and mark it playing immediately
         next_position = 1
