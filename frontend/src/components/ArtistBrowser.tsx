@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAudioPlayer } from '../context/AudioPlayerContext';
 import {
-  X, Search, Music, ChevronRight, ChevronDown, Shuffle, Play, Loader2, Users
+  X, Search, Music, ChevronRight, ChevronDown, Shuffle, Play, Loader2, Users, Disc
 } from 'lucide-react';
 
 interface Artist {
@@ -45,9 +45,13 @@ export const ArtistBrowser: React.FC<ArtistBrowserProps> = ({ onClose }) => {
   const searchRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Load artist list on mount
+  const [tab, setTab] = useState<'artists' | 'genres'>('artists');
+  const [genres, setGenres] = useState<string[]>([]);
+  
+  // Load artist list and genres on mount
   useEffect(() => {
     fetchArtists();
+    fetchGenres();
     setTimeout(() => searchRef.current?.focus(), 100);
   }, []);
 
@@ -83,6 +87,18 @@ export const ArtistBrowser: React.FC<ArtistBrowserProps> = ({ onClose }) => {
       console.error('Failed to load artists:', e);
     } finally {
       setLoadingArtists(false);
+    }
+  };
+
+  const fetchGenres = async () => {
+    try {
+      const res = await fetch('/api/library/genres');
+      const data = await res.json();
+      if (data.status === 'success') {
+        setGenres(data.genres);
+      }
+    } catch (e) {
+      console.error('Failed to load genres:', e);
     }
   };
 
@@ -158,12 +174,12 @@ export const ArtistBrowser: React.FC<ArtistBrowserProps> = ({ onClose }) => {
         <div className="flex items-center justify-between px-6 py-3 flex-shrink-0 border-b border-white/5">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-indigo-500 to-violet-600 flex items-center justify-center">
-              <Users className="w-3.5 h-3.5 text-white" />
+              <Disc className="w-3.5 h-3.5 text-white" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-white">Artist Browser</h2>
+              <h2 className="text-sm font-bold text-white">Library Browser</h2>
               <p className="text-[10px] text-gray-500">
-                {loadingArtists ? 'Loading...' : `${artists.length} artists · Pick one to seed the station`}
+                Pick an artist or genre to seed the station
               </p>
             </div>
           </div>
@@ -175,33 +191,55 @@ export const ArtistBrowser: React.FC<ArtistBrowserProps> = ({ onClose }) => {
           </button>
         </div>
 
-        {/* Search bar */}
-        <div className="px-4 py-3 flex-shrink-0">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
-            <input
-              ref={searchRef}
-              type="text"
-              placeholder="Search artists..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-indigo-500/50 focus:bg-white/[0.06] transition"
-            />
-            {search && (
-              <button
-                onClick={() => setSearch('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-400"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
+        {/* Tabs */}
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-white/5 flex-shrink-0">
+          <button
+            onClick={() => setTab('artists')}
+            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition ${
+              tab === 'artists' ? 'bg-indigo-500/20 text-indigo-300' : 'text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            Artists
+          </button>
+          <button
+            onClick={() => setTab('genres')}
+            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition ${
+              tab === 'genres' ? 'bg-indigo-500/20 text-indigo-300' : 'text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            Genres
+          </button>
         </div>
 
-        {/* Artist list */}
-        <div className="flex-1 overflow-y-auto px-4 pb-8 space-y-1 no-scrollbar">
+        {tab === 'artists' && (
+          <>
+            {/* Search bar */}
+            <div className="px-4 py-3 flex-shrink-0">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                <input
+                  ref={searchRef}
+                  type="text"
+                  placeholder="Search artists..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-indigo-500/50 focus:bg-white/[0.06] transition"
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-400"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
 
-          {loadingArtists ? (
+            {/* Artist list */}
+            <div className="flex-1 overflow-y-auto px-4 pb-8 space-y-1 no-scrollbar">
+
+              {loadingArtists ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
               <Loader2 className="w-6 h-6 text-indigo-400 animate-spin" />
               <p className="text-sm text-gray-500">Loading library...</p>
@@ -334,6 +372,35 @@ export const ArtistBrowser: React.FC<ArtistBrowserProps> = ({ onClose }) => {
             ))
           )}
         </div>
+        </>
+        )}
+
+        {tab === 'genres' && (
+          <div className="flex-1 overflow-y-auto px-4 py-4 pb-8 space-y-2 no-scrollbar">
+            <div className="grid grid-cols-2 gap-3">
+              {genres.map(genre => (
+                <button
+                  key={genre}
+                  onClick={async () => {
+                    setSeeding(true);
+                    await seedStation({ genre: genre });
+                    setSeeding(false);
+                    onClose();
+                  }}
+                  disabled={seeding}
+                  className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-indigo-500/10 hover:border-indigo-500/20 hover:text-indigo-300 transition text-sm font-semibold text-gray-300 text-left group disabled:opacity-50"
+                >
+                  {genre}
+                  <Shuffle className="w-4 h-4 text-gray-600 group-hover:text-indigo-400 transition" />
+                </button>
+              ))}
+            </div>
+            {genres.length === 0 && (
+               <p className="text-center text-sm text-gray-500 py-10">No curated genres found.</p>
+            )}
+          </div>
+        )}
+      </div>
 
         {/* Bottom loading overlay */}
         {seeding && (

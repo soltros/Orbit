@@ -76,19 +76,39 @@ def get_artist_tracks(artist_name):
         return jsonify({"status": "error", "message": "An internal error occurred."}), 500
 
 
+META_GENRES = {
+    "Rock": ["rock", "metal", "punk", "grunge", "indie", "alternative"],
+    "Pop": ["pop", "dance", "synthpop"],
+    "Hip-Hop / Rap": ["hip-hop", "rap", "trap", "drill"],
+    "Electronic": ["electronic", "techno", "house", "trance", "dubstep", "edm", "ambient"],
+    "R&B / Soul": ["r&b", "soul", "funk", "neo-soul"],
+    "Jazz": ["jazz", "swing", "bebop"],
+    "Classical": ["classical", "baroque", "orchestral", "symphony"],
+    "Country": ["country", "bluegrass"],
+    "Folk": ["folk", "acoustic"],
+    "Reggae": ["reggae", "dancehall", "ska"],
+    "Blues": ["blues"]
+}
+
+@library_bp.route('/genres', methods=['GET'])
+def get_genres():
+    """Returns a list of curated meta-genres available for seeding."""
+    return jsonify({"status": "success", "genres": list(META_GENRES.keys())}), 200
+
 @library_bp.route('/seed', methods=['POST'])
 def seed_station():
     """
-    Seeds the recommendation engine with a specific track or a random track
-    from a given artist, then generates an initial queue.
+    Seeds the recommendation engine with a specific track, random track from artist, or random track from genre.
 
     Body (JSON):
       { "track_id": "abc123" }          — seed from a specific track
       { "artist": "Gin Blossoms" }      — seed from a random track by that artist
+      { "genre": "Rock" }               — seed from a random track in that meta-genre
     """
     data = request.get_json(silent=True) or {}
     track_id = data.get('track_id')
     artist_name = data.get('artist')
+    genre_name = data.get('genre')
 
     try:
         user = get_or_create_default_user()
@@ -101,7 +121,6 @@ def seed_station():
                 return jsonify({"status": "error", "message": "Track not found."}), 404
 
         elif artist_name:
-            # Pick a random track from this artist
             seed_track = (
                 Track.query
                 .filter(func.lower(Track.artist) == artist_name.lower())
@@ -111,8 +130,17 @@ def seed_station():
             if not seed_track:
                 return jsonify({"status": "error", "message": f"No tracks found for artist '{artist_name}'."}), 404
 
+        elif genre_name:
+            keywords = META_GENRES.get(genre_name, [genre_name.lower()])
+            query = Track.query.join(Track.genres).filter(
+                db.or_(*[Genre.name.ilike(f"%{kw}%") for kw in keywords])
+            )
+            seed_track = query.order_by(db.func.random()).first()
+            if not seed_track:
+                return jsonify({"status": "error", "message": f"No tracks found for genre '{genre_name}'."}), 404
+
         else:
-            return jsonify({"status": "error", "message": "Provide either 'track_id' or 'artist'."}), 400
+            return jsonify({"status": "error", "message": "Provide either 'track_id', 'artist', or 'genre'."}), 400
 
         # Clear any existing queue so the seed starts fresh
         QueueItem.query.filter_by(user_id=user.id).delete()
