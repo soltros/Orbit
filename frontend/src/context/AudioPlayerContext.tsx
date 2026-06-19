@@ -63,6 +63,7 @@ interface AudioPlayerContextType {
   setRecommendationMode: (mode: 'llm' | 'local') => Promise<void>;
   refreshStats: () => Promise<void>;
   startStation: () => Promise<void>;
+  seedStation: (opts: { artist?: string; trackId?: string }) => Promise<void>;
 }
 
 const AudioPlayerContext = createContext<AudioPlayerContextType | undefined>(undefined);
@@ -239,6 +240,49 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   // Manual "Start Station" trigger — called by the UI button
   const startStation = async () => {
     await triggerQueueGeneration(true);
+  };
+
+  // Seed the station from a specific artist or track
+  const seedStation = async ({ artist, trackId }: { artist?: string; trackId?: string }) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const body: Record<string, string> = {};
+      if (trackId) body.track_id = trackId;
+      else if (artist) body.artist = artist;
+
+      const res = await fetch('/api/library/seed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+
+      if (data.status === 'success') {
+        // Immediately set the seed track as the current playing track in UI
+        const seedItem: QueueItem = data.seed_queue_item;
+        setCurrentTrack(seedItem);
+        setProgress(0);
+        hasPrefetchedRef.current = false;
+
+        // Point audio element at the seed track stream
+        if (audioRef.current) {
+          audioRef.current.src = `/api/subsonic/stream/${seedItem.track.id}`;
+          audioRef.current.play().catch(e => console.error("Seed playback failed:", e));
+        }
+
+        // Load the newly generated upcoming queue
+        await refreshQueue();
+        await refreshStats();
+      } else {
+        setError(data.message || 'Failed to seed station.');
+      }
+    } catch (err) {
+      console.error("Seed station failed:", err);
+      setError("Failed to connect to backend.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const triggerPrefetch = () => {
@@ -551,7 +595,8 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       clearQueue,
       setRecommendationMode,
       refreshStats,
-      startStation
+      startStation,
+      seedStation
     }}>
       {children}
     </AudioPlayerContext.Provider>

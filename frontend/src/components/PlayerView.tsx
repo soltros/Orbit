@@ -1,8 +1,12 @@
 import React from 'react';
 import { useAudioPlayer } from '../context/AudioPlayerContext';
-import { Play, Pause, SkipForward, Volume2, VolumeX, Heart, ThumbsDown, Radio } from 'lucide-react';
+import { Play, Pause, SkipForward, Volume2, VolumeX, Heart, ThumbsDown, Users } from 'lucide-react';
 
-export const PlayerView: React.FC = () => {
+interface PlayerViewProps {
+  onOpenBrowser: () => void;
+}
+
+export const PlayerView: React.FC<PlayerViewProps> = ({ onOpenBrowser }) => {
   const {
     currentTrack,
     isPlaying,
@@ -18,7 +22,6 @@ export const PlayerView: React.FC = () => {
     seek,
     setVolume,
     toggleMute,
-    startStation,
     acousticStats,
   } = useAudioPlayer();
 
@@ -84,17 +87,17 @@ export const PlayerView: React.FC = () => {
             <p className="text-xs text-gray-500 mt-0.5 truncate">{currentTrack.track.album || 'No Album'}</p>
           </>
         ) : hasSyncedTracks ? (
-          /* Library is synced — show Start Station CTA */
+          /* Library is synced — show Browse Artists CTA */
           <>
             <h2 className="text-xl font-bold text-gray-200">Ready to Play</h2>
             <p className="text-sm text-gray-500 mt-1">{acousticStats!.cached_tracks} tracks in library</p>
             <button
-              onClick={startStation}
+              onClick={onOpenBrowser}
               disabled={isLoading}
               className="mt-3 mx-auto flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 text-white text-sm font-bold rounded-full shadow-lg shadow-indigo-500/30 transition duration-200 disabled:opacity-50"
             >
-              <Radio className="w-4 h-4" />
-              {isLoading ? 'Starting...' : 'Start Station'}
+              <Users className="w-4 h-4" />
+              {isLoading ? 'Starting...' : 'Browse Artists'}
             </button>
           </>
         ) : (

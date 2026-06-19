@@ -35,10 +35,12 @@ def create_app(config_class=Config):
     from app.routes.queue_routes import queue_bp
     from app.routes.profile_routes import profile_bp
     from app.routes.playlist_routes import playlist_bp
+    from app.routes.library_routes import library_bp
     app.register_blueprint(subsonic_bp)
     app.register_blueprint(queue_bp)
     app.register_blueprint(profile_bp)
     app.register_blueprint(playlist_bp)
+    app.register_blueprint(library_bp)
 
     # Register custom CLI commands
     from app.commands import register_commands
