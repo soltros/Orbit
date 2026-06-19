@@ -4,7 +4,9 @@ import type { QueueItem } from '../context/AudioPlayerContext';
 import { Sparkles, Music } from 'lucide-react';
 
 export const QueueView: React.FC = () => {
-  const { upcomingQueue, playTrack, isLoading } = useAudioPlayer();
+  const { upcomingQueue, playTrack, isLoading, recommendationMode, acousticStats } = useAudioPlayer();
+
+  const nothingSynced = (acousticStats?.cached_tracks ?? 0) === 0;
 
   return (
     <div className="flex flex-col w-full max-w-md mx-auto mt-6 p-6 bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl shadow-2xl">
@@ -22,8 +24,21 @@ export const QueueView: React.FC = () => {
         {upcomingQueue.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <Music className="w-8 h-8 text-gray-600 mb-2 animate-bounce" />
-            <p className="text-sm font-medium text-gray-500">Generating initial playlist...</p>
-            <p className="text-xs text-gray-600 mt-1">This takes a few seconds via OpenAI/Anthropic</p>
+            {nothingSynced ? (
+              <>
+                <p className="text-sm font-medium text-gray-500">No tracks synced yet.</p>
+                <p className="text-[10px] text-gray-600 mt-1 max-w-[220px]">
+                  Run <code className="text-indigo-400">flask sync-subsonic</code> inside the backend container to load your library.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm font-medium text-gray-500">Generating initial playlist...</p>
+                <p className="text-xs text-gray-600 mt-1">
+                  {recommendationMode === 'local' ? 'Scoring tracks with the local acoustic engine.' : 'This takes a few seconds via OpenAI/Anthropic'}
+                </p>
+              </>
+            )}
           </div>
         ) : (
           upcomingQueue.map((item: QueueItem, idx: number) => (

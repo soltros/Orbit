@@ -10,13 +10,24 @@ from app.rate_limiter import is_rate_limited
 queue_bp = Blueprint('queue', __name__, url_prefix='/api/queue')
 
 def get_or_create_default_user():
-    """Helper to ensure a default user exists for this single-user system."""
+    """Helper to ensure a default user exists for this single-user system.
+    
+    Uses a try/except around the INSERT to gracefully handle the race condition
+    where multiple concurrent startup requests all attempt to create the user
+    at the same time. The first one wins; the rest fall back to a SELECT.
+    """
     user = UserProfile.query.filter_by(username="default").first()
-    if not user:
+    if user:
+        return user
+    try:
         user = UserProfile(username="default")
         db.session.add(user)
         db.session.commit()
-    return user
+        return user
+    except Exception:
+        # Another concurrent request already created the user — roll back and fetch
+        db.session.rollback()
+        return UserProfile.query.filter_by(username="default").first()
 
 def get_candidate_tracks(user, count=50):
     """
