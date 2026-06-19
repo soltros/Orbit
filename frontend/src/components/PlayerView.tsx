@@ -84,7 +84,17 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ onOpenBrowser }) => {
           <>
             <h2 className="text-xl font-bold text-gray-100 truncate">{currentTrack.track.title}</h2>
             <p className="text-sm font-medium text-indigo-400 mt-1 truncate">{currentTrack.track.artist}</p>
-            <p className="text-xs text-gray-500 mt-0.5 truncate">{currentTrack.track.album || 'No Album'}</p>
+            <div className="flex items-center justify-center gap-3 mt-1.5">
+              <p className="text-xs text-gray-500 truncate max-w-[150px]">{currentTrack.track.album || 'No Album'}</p>
+              <button
+                onClick={onOpenBrowser}
+                title="Abandon station and start a new one"
+                className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-indigo-300 hover:text-white bg-indigo-500/10 hover:bg-indigo-500/30 border border-indigo-500/20 px-2 py-0.5 rounded-full transition duration-150"
+              >
+                <Users className="w-3 h-3" />
+                New Station
+              </button>
+            </div>
           </>
         ) : hasSyncedTracks ? (
           /* Library is synced — show Browse Artists CTA */
