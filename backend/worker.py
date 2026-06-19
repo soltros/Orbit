@@ -5,6 +5,7 @@ import tempfile
 import requests
 import librosa
 import numpy as np
+import concurrent.futures
 from app import create_app, db
 from app.models import Track
 from app.subsonic import SubsonicClient
@@ -95,89 +96,106 @@ def extract_acoustic_features(file_path):
         "embedding": embedding
     }
 
-def process_single_track(track):
+def process_single_track(track_id):
     """Processes a single pending track, saving results to the SQLite database."""
-    logger.info(f"Processing track: {track.title} - {track.artist} (ID: {track.id})")
-    
-    url = app.config.get('SUBSONIC_URL')
-    user = app.config.get('SUBSONIC_USER')
-    password = app.config.get('SUBSONIC_PASS')
-    
-    if not url or not user or not password:
-        logger.error("Missing Subsonic credentials in settings. Cannot download track.")
-        track.acoustic_status = 'failed'
-        track.acoustic_error = "Missing Subsonic credentials."
-        db.session.commit()
-        return False
-        
-    client = SubsonicClient(base_url=url, username=user, password=password)
-    stream_url = client.get_stream_url(track.id)
-    
-    # Download the track to a temporary file
-    temp_fd, temp_path = tempfile.mkstemp(suffix=".audio")
-    os.close(temp_fd)
-    
-    try:
-        logger.info(f"Downloading track {track.id} from Navidrome...")
-        response = requests.get(stream_url, stream=True, timeout=30)
-        response.raise_for_status()
-        with open(temp_path, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                f.write(chunk)
-                
-        # Analyze the downloaded file
-        features = extract_acoustic_features(temp_path)
-        
-        # Save updates
-        track.acoustic_embedding = features["embedding"]
-        track.key = features["key"]
-        track.energy = features["energy"]
-        # Update BPM if not already set by mutagen tags
-        if not track.bpm:
-            track.bpm = features["bpm"]
+    with app.app_context():
+        track = Track.query.get(track_id)
+        if not track:
+            return False
             
-        track.acoustic_status = 'completed'
-        track.acoustic_error = None
-        db.session.commit()
+        logger.info(f"Processing track: {track.title} - {track.artist} (ID: {track.id})")
         
-        logger.info(f"Successfully analyzed: {track.title} (Key: {track.key}, Energy: {track.energy:.2f})")
-        return True
-    except Exception as e:
-        error_msg = f"Analysis pipeline failed: {str(e)}"
-        logger.error(error_msg)
-        track.acoustic_status = 'failed'
-        track.acoustic_error = error_msg
-        db.session.commit()
-        return False
-    finally:
-        # Always clean up the temp file
-        if os.path.exists(temp_path):
-            try:
-                os.remove(temp_path)
-            except Exception as cleanup_err:
-                logger.error(f"Failed to delete temp file {temp_path}: {cleanup_err}")
+        url = app.config.get('SUBSONIC_URL')
+        user = app.config.get('SUBSONIC_USER')
+        password = app.config.get('SUBSONIC_PASS')
+        
+        if not url or not user or not password:
+            logger.error("Missing Subsonic credentials in settings. Cannot download track.")
+            track.acoustic_status = 'failed'
+            track.acoustic_error = "Missing Subsonic credentials."
+            db.session.commit()
+            return False
+            
+        client = SubsonicClient(base_url=url, username=user, password=password)
+        # Request a highly compressed 64kbps version from the server to drastically speed up network transfer and librosa decoding
+        stream_url = client.get_stream_url(track.id, max_bit_rate=64)
+        
+        # Download the track to a temporary file
+        temp_fd, temp_path = tempfile.mkstemp(suffix=".audio")
+        os.close(temp_fd)
+    
+        try:
+            logger.info(f"Downloading track {track.id} from Navidrome...")
+            response = requests.get(stream_url, stream=True, timeout=30)
+            response.raise_for_status()
+            with open(temp_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+                    
+            # Analyze the downloaded file
+            features = extract_acoustic_features(temp_path)
+            
+            # Save updates
+            track.acoustic_embedding = features["embedding"]
+            track.key = features["key"]
+            track.energy = features["energy"]
+            # Update BPM if not already set by mutagen tags
+            if not track.bpm:
+                track.bpm = features["bpm"]
+                
+            track.acoustic_status = 'completed'
+            track.acoustic_error = None
+            db.session.commit()
+            
+            logger.info(f"Successfully analyzed: {track.title} (Key: {track.key}, Energy: {track.energy:.2f})")
+            return True
+        except Exception as e:
+            error_msg = f"Analysis pipeline failed: {str(e)}"
+            logger.error(error_msg)
+            track.acoustic_status = 'failed'
+            track.acoustic_error = error_msg
+            db.session.commit()
+            return False
+        finally:
+            # Always clean up the temp file
+            if os.path.exists(temp_path):
+                try:
+                    os.remove(temp_path)
+                except Exception as cleanup_err:
+                    logger.error(f"Failed to delete temp file {temp_path}: {cleanup_err}")
 
 def run_worker_loop():
-    logger.info("Orbit acoustic analysis worker started successfully.")
+    logger.info("Orbit acoustic analysis worker started successfully with Multi-Threading.")
     
-    while True:
-        try:
-            with app.app_context():
-                # Fetch next pending track
-                track = Track.query.filter_by(acoustic_status='pending').first()
-                
-                if track:
-                    # Mark as processing immediately to lock it
-                    track.acoustic_status = 'processing'
-                    db.session.commit()
+    # Allow up to 4 concurrent downloads/analyses to maximize CPU and Network utilization
+    max_workers = 4
+    
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        while True:
+            try:
+                with app.app_context():
+                    # Fetch next pending tracks (up to max_workers)
+                    pending_tracks = Track.query.filter_by(acoustic_status='pending').limit(max_workers).all()
                     
-                    process_single_track(track)
-                else:
-                    # No pending tracks, sleep and wait
-                    time.sleep(5)
-        except Exception as e:
-            logger.error(f"Worker loop exception: {str(e)}")
-            time.sleep(10)
+                    if not pending_tracks:
+                        # No pending tracks, sleep and wait
+                        time.sleep(5)
+                        continue
+                        
+                    # Mark all fetched tracks as 'processing' immediately to lock them
+                    track_ids = []
+                    for track in pending_tracks:
+                        track.acoustic_status = 'processing'
+                        track_ids.append(track.id)
+                    db.session.commit()
+                
+                # Submit them to the thread pool and wait for the batch to finish
+                futures = [executor.submit(process_single_track, tid) for tid in track_ids]
+                concurrent.futures.wait(futures)
+                
+            except Exception as e:
+                logger.error(f"Worker loop exception: {str(e)}")
+                time.sleep(10)
 
 if __name__ == "__main__":
     run_worker_loop()

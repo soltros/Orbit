@@ -94,9 +94,11 @@ class SubsonicClient:
         endpoint = "star.view" if star else "unstar.view"
         return self._make_request(endpoint, {"id": track_id})
 
-    def get_stream_url(self, track_id):
+    def get_stream_url(self, track_id, max_bit_rate=None):
         params = self._get_auth_params()
         params['id'] = track_id
+        if max_bit_rate:
+            params['maxBitRate'] = max_bit_rate
         # Convert params to query string
         query_string = '&'.join([f"{k}={v}" for k, v in params.items()])
         return f"{self.base_url}/rest/stream.view?{query_string}"
