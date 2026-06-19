@@ -5,7 +5,7 @@ import { QueueView } from './components/QueueView';
 import { DiscoveryHub } from './components/DiscoveryHub';
 import { ArtistBrowser } from './components/ArtistBrowser';
 import { LoginView } from './components/LoginView';
-import { Radio, AlertTriangle, Users, LogOut } from 'lucide-react';
+import { Radio, AlertTriangle, Users, LogOut, RefreshCw } from 'lucide-react';
 
 const OrbitApp: React.FC = () => {
   const { error, currentTrack, acousticStats } = useAudioPlayer();
@@ -56,6 +56,22 @@ const OrbitApp: React.FC = () => {
               Artists
             </button>
           )}
+
+          <button
+            onClick={async () => {
+              try {
+                await fetch('/api/subsonic/sync', { method: 'POST' });
+                alert('Sync started in the background. Check logs for progress!');
+              } catch (err) {
+                console.error(err);
+              }
+            }}
+            title="Sync Subsonic Database"
+            className="flex items-center gap-1.5 text-xs font-semibold text-indigo-400 hover:text-indigo-300 bg-indigo-500/5 hover:bg-indigo-500/10 border border-indigo-500/10 px-3 py-1.5 rounded-lg transition duration-150"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Sync
+          </button>
 
           <button
             onClick={handleLogout}

@@ -1,6 +1,7 @@
 import os
 import threading
 import requests
+import subprocess
 from flask import Blueprint, current_app, jsonify, request, Response, stream_with_context, send_file, session
 from app.subsonic import SubsonicClient
 from app.models import Track
@@ -213,4 +214,32 @@ def get_stats():
         except Exception as db_err:
             current_app.logger.error(f"DB Error: {str(db_err)}")
             return jsonify({"status": "error", "message": "An internal error occurred."}), 500
+
+@subsonic_bp.route('/sync', methods=['POST'])
+def sync_subsonic():
+    try:
+        # Run the flask command in the background
+        # Since we are already inside the container, we don't need docker exec
+        # We need to pass the current session's config environment variables so the CLI knows who to sync for
+        env = os.environ.copy()
+        
+        # We pass the session credentials to the env so the CLI sync command uses the correct user
+        url = session.get('subsonic_url') or current_app.config.get('SUBSONIC_URL', '')
+        user = session.get('subsonic_user') or current_app.config.get('SUBSONIC_USER', '')
+        password = session.get('subsonic_pass') or current_app.config.get('SUBSONIC_PASS', '')
+        
+        env['SUBSONIC_URL'] = url
+        env['SUBSONIC_USER'] = user
+        env['SUBSONIC_PASS'] = password
+
+        subprocess.Popen(
+            ["flask", "sync-subsonic"],
+            env=env,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+        return jsonify({"status": "success", "message": "Subsonic sync started in the background."}), 200
+    except Exception as e:
+        current_app.logger.error(f"Failed to start sync: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
