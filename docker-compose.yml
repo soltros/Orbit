@@ -1,112 +1,139 @@
+# Orbit Docker Compose Orchestration Config
+#
+# This file spins up the 4 core containers needed for Orbit:
+# 1. Reverse Proxy (Traefik) - handles routing and local domains
+# 2. Flask API Server (backend) - handles database, subsonic calls, and LLMs
+# 3. Acoustic Worker (worker) - runs Librosa analyses on audio files
+# 4. static Web Server (frontend) - hosts the React PWA interface
+#
+# To launch:
+#   1. Copy .env.example to .env and configure your subsonic credentials/volume paths.
+#   2. Run `docker compose up -d --build`
+
 version: '3.8'
 
 services:
+  # ==========================================
+  # REVERSE PROXY (TRAEFIK)
+  # ==========================================
+  # Traefik acts as the entrypoint for all incoming HTTP requests.
+  # It automatically routes path prefixes like /api and /rest to the backend,
+  # and all other hostname requests to the React frontend.
   traefik:
     image: traefik:v2.10
     container_name: orbit-traefik
     command:
-      - "--api.insecure=true"
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
-      # Uncomment the lines below to enable Let's Encrypt in production
-      # - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
-      # - "--certificatesresolvers.myresolver.acme.email=${ACME_EMAIL:-email@example.com}"
-      # - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+      - "--api.insecure=true"                   # Exposes the Traefik dashboard
+      - "--providers.docker=true"                # Enables automatic container detection
+      - "--providers.docker.exposedbydefault=false" # Only expose containers with explicit traefik.enable labels
+      - "--entrypoints.web.address=:80"          # Defines port 80 entrypoint (HTTP)
+      - "--entrypoints.websecure.address=:443"   # Defines port 443 entrypoint (HTTPS)
     ports:
-      - "80:80"
-      - "443:443"
-      - "8080:8080" # Dashboard UI (access via http://localhost:8080)
+      - "80:80"                                  # Bind standard HTTP port to host
+      - "443:443"                                # Bind standard HTTPS port to host
+      - "8080:8080"                              # Traefik Dashboard (Access via http://localhost:8080)
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      # Uncomment to persist SSL certs in production
-      # - ./docker/letsencrypt:/letsencrypt
+      - /var/run/docker.sock:/var/run/docker.sock:ro # Connects Traefik to host's Docker socket (read-only)
     networks:
       - orbit-network
     restart: unless-stopped
 
+  # ==========================================
+  # API BACKEND (FLASK & SQLALCHEMY)
+  # ==========================================
+  # The brain of Orbit. Connects to Subsonic API, queries database, manages 
+  # play/skip logs, and communicates with LLM APIs for queue generation.
   backend:
     build:
-      context: ./backend
+      context: ./backend                         # Build using the Dockerfile inside /backend
       dockerfile: Dockerfile
     container_name: orbit-backend
     environment:
+      # Secret key used for signing session cookies
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-this}
+      
+      # Run in 'production' or 'development' mode
       - FLASK_ENV=${FLASK_ENV:-production}
+      
+      # SQLite database container internal storage path (mounted to volume)
       - DATABASE_PATH=${DATABASE_PATH:-/app/data/orbit.db}
+      
+      # Navidrome/Subsonic Connection parameters (from your .env file)
       - SUBSONIC_URL=${SUBSONIC_URL}
       - SUBSONIC_USER=${SUBSONIC_USER}
       - SUBSONIC_PASS=${SUBSONIC_PASS}
+      
+      # LLM integration switches (openai or anthropic)
       - LLM_PROVIDER=${LLM_PROVIDER:-openai}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     volumes:
-      - db-data:/app/data
-      - ${MUSIC_DIR:-/music}:/music
+      - db-data:/app/data                        # Persistent SQLite storage
+      - ${MUSIC_DIR:-/music}:/music              # Mounts host music folder to container for scanning/ NSP exports
     networks:
       - orbit-network
     labels:
       - "traefik.enable=true"
-      # Route both /api and /rest (Subsonic rest API proxy) to the backend
+      # Route requests matching orbit.localhost/api/* and orbit.localhost/rest/* to backend
       - "traefik.http.routers.backend.rule=Host(`${DOMAIN_NAME:-orbit.localhost}`) && (PathPrefix(`/api`) || PathPrefix(`/rest`))"
       - "traefik.http.routers.backend.entrypoints=web"
-      - "traefik.http.services.backend.loadbalancer.server.port=5000"
-      
-      # Optional: Enable SSL secure router if production certificates are active
-      # - "traefik.http.routers.backend-secure.rule=Host(`${DOMAIN_NAME:-orbit.localhost}`) && (PathPrefix(`/api`) || PathPrefix(`/rest`))"
-      # - "traefik.http.routers.backend-secure.entrypoints=websecure"
-      # - "traefik.http.routers.backend-secure.tls=true"
-      # - "traefik.http.routers.backend-secure.tls.certresolver=myresolver"
+      - "traefik.http.services.backend.loadbalancer.server.port=5000" # Backend container port
     restart: unless-stopped
 
+  # ==========================================
+  # ACOUSTIC worker (LIBROSA BACKGROUND PROCESS)
+  # ==========================================
+  # A separate background thread task worker. Reuses the backend build image.
+  # It sequentially reads raw audio files, extracts acoustic metrics (BPM, Key, Energy, Timbre),
+  # and writes standard 27-dimensional feature vectors to the SQLite database.
   worker:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: orbit-worker
-    command: python worker.py
+    command: python worker.py                    # Overrides the Flask server run command
     environment:
       - DATABASE_PATH=${DATABASE_PATH:-/app/data/orbit.db}
       - MUSIC_DIR_CONTAINER=/music
       - MUSIC_DIR_HOST=${MUSIC_DIR:-/music}
     volumes:
-      - db-data:/app/data
-      - ${MUSIC_DIR:-/music}:/music:ro
+      - db-data:/app/data                        # Accesses same database to update tracks
+      - ${MUSIC_DIR:-/music}:/music:ro           # Read-only raw music mount (safer)
     networks:
       - orbit-network
     deploy:
       resources:
         limits:
-          cpus: '1.0'
-          memory: 512M
+          cpus: '1.0'                            # Restrict to maximum 1 CPU core to prevent server latency
+          memory: 512M                           # Hard ram limit for worker thread
     restart: unless-stopped
 
+  # ==========================================
+  # PWA FRONTEND (STATIC NGINX CONTAINER)
+  # ==========================================
+  # Hosts the React TS web application. Nginx serves client bundles.
+  # Contains pre-fetching buffers and lockscreen Media Session API listeners.
   frontend:
     build:
-      context: ./frontend
+      context: ./frontend                        # Build using the multi-stage Dockerfile inside /frontend
       dockerfile: Dockerfile
     container_name: orbit-frontend
     networks:
       - orbit-network
     labels:
       - "traefik.enable=true"
-      # Route everything else to the frontend container
+      # Route all other domains traffic (e.g. root domain http://orbit.localhost) to frontend
       - "traefik.http.routers.frontend.rule=Host(`${DOMAIN_NAME:-orbit.localhost}`)"
       - "traefik.http.routers.frontend.entrypoints=web"
-      - "traefik.http.services.frontend.loadbalancer.server.port=80"
-      
-      # Optional: Enable SSL secure router if production certificates are active
-      # - "traefik.http.routers.frontend-secure.rule=Host(`${DOMAIN_NAME:-orbit.localhost}`)"
-      # - "traefik.http.routers.frontend-secure.entrypoints=websecure"
-      # - "traefik.http.routers.frontend-secure.tls=true"
-      # - "traefik.http.routers.frontend-secure.tls.certresolver=myresolver"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80" # Nginx container port
     restart: unless-stopped
 
+# Persistent storage allocations
 volumes:
   db-data:
     driver: local
 
+# Internal virtual bridge network for secure container-to-container connection
 networks:
   orbit-network:
     driver: bridge
