@@ -1,6 +1,6 @@
 import os
 import json
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, current_app, jsonify, request, session
 from app import db
 from app.models import Track, QueueItem, InteractionHistory
 from app.subsonic import SubsonicClient
@@ -23,6 +23,10 @@ def setup_status():
 @setup_bp.route('/config', methods=['GET'])
 def get_config():
     """Returns the current configuration (with passwords/keys masked or omitted for security)."""
+    user = session.get('subsonic_user')
+    if user != current_app.config.get('SUBSONIC_USER'):
+        return jsonify({"status": "error", "message": "Unauthorized. Admin access required."}), 403
+
     return jsonify({
         "SUBSONIC_URL": current_app.config.get('SUBSONIC_URL', ''),
         "SUBSONIC_USER": current_app.config.get('SUBSONIC_USER', ''),
@@ -36,6 +40,13 @@ def get_config():
 @setup_bp.route('/save', methods=['POST'])
 def save_settings():
     """Saves persistent configuration to settings.json and live-reloads config."""
+    # If a setup already exists, only the admin user can save new settings
+    existing_url = current_app.config.get('SUBSONIC_URL')
+    if existing_url and existing_url != "":
+        user = session.get('subsonic_user')
+        if user != current_app.config.get('SUBSONIC_USER'):
+            return jsonify({"status": "error", "message": "Unauthorized. Admin access required."}), 403
+
     data = request.get_json(silent=True) or {}
     
     url = data.get('SUBSONIC_URL')

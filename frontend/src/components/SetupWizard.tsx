@@ -91,8 +91,14 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
         {step === 1 && (
           <form className="mt-8 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500" onSubmit={handleNext}>
             <div className="space-y-4">
-              <h3 className="text-lg font-medium text-white border-b border-white/10 pb-2">Step 1: Connect Navidrome</h3>
-              <p className="text-xs text-gray-400">Enter the URL and credentials for your Navidrome or Subsonic server.</p>
+              <div>
+                <h3 className="text-xl font-bold text-white mb-2">Connect to Navidrome / Subsonic</h3>
+                <p className="text-sm text-gray-400">
+                  This sets up the <strong>global admin service account</strong> for Orbit. 
+                  Provide the URL and credentials of a Navidrome user that has full access to the music library. 
+                  Regular users will log in using their own accounts later.
+                </p>
+              </div>
               
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">

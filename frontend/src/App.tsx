@@ -14,6 +14,7 @@ const OrbitApp: React.FC = () => {
   const [browserOpen, setBrowserOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isSetupNeeded, setIsSetupNeeded] = useState<boolean | null>(null);
   
   const [isSyncing, setIsSyncing] = useState(false);
@@ -22,12 +23,30 @@ const OrbitApp: React.FC = () => {
   const hasTracks = (acousticStats?.cached_tracks ?? 0) > 0;
 
   React.useEffect(() => {
-    fetch('/api/setup/status')
-      .then(res => res.json())
-      .then(data => {
-        setIsSetupNeeded(data.needs_setup);
-      })
-      .catch(() => setIsSetupNeeded(false)); // fallback
+    (async () => {
+      try {
+        const statusRes = await fetch('/api/setup/status');
+        if (statusRes.ok) {
+          const statusData = await statusRes.json();
+          if (statusData.needs_setup) {
+            setIsSetupNeeded(true);
+            return;
+          }
+        }
+        
+        const res = await fetch('/api/auth/me');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.status === 'success') {
+            setIsAuthenticated(true);
+            setIsAdmin(data.is_admin === true);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to verify auth:', err);
+      }
+      setIsSetupNeeded(false);
+    })();
   }, []);
 
   React.useEffect(() => {
@@ -67,7 +86,13 @@ const OrbitApp: React.FC = () => {
   }
 
   if (!isAuthenticated) {
-    return <LoginView onLoginSuccess={() => setIsAuthenticated(true)} />;
+    return <LoginView onLoginSuccess={() => {
+      setIsAuthenticated(true);
+      // Re-fetch me to get admin status
+      fetch('/api/auth/me')
+        .then(res => res.json())
+        .then(data => setIsAdmin(data.is_admin === true));
+    }} />;
   }
 
   const handleLogout = async () => {
@@ -132,14 +157,16 @@ const OrbitApp: React.FC = () => {
             {isSyncing ? `Syncing... (${syncCount})` : 'Sync'}
           </button>
 
-          <button
-            onClick={() => setSettingsOpen(true)}
-            title="Settings"
-            className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/5 px-3 py-1.5 rounded-lg transition duration-150"
-          >
-            <Settings className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Settings</span>
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => setSettingsOpen(true)}
+              title="Settings"
+              className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/5 px-3 py-1.5 rounded-lg transition duration-150"
+            >
+              <Settings className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Settings</span>
+            </button>
+          )}
 
           <button
             onClick={handleLogout}

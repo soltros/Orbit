@@ -45,10 +45,12 @@ def logout():
 @auth_bp.route('/me', methods=['GET'])
 def get_current_user():
     user = session.get('subsonic_user')
+    admin_user = current_app.config.get('SUBSONIC_USER')
     if user:
         return jsonify({
             "status": "success", 
             "user": user,
-            "url": session.get('subsonic_url')
+            "url": session.get('subsonic_url'),
+            "is_admin": user == admin_user
         }), 200
     return jsonify({"status": "error", "message": "Not authenticated."}), 401
