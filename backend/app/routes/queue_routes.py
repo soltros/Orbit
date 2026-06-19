@@ -9,6 +9,33 @@ from app.rate_limiter import is_rate_limited
 
 queue_bp = Blueprint('queue', __name__, url_prefix='/api/queue')
 
+
+def is_llm_configured():
+    """Returns True only if the configured LLM provider has a real API key set."""
+    provider = current_app.config.get('LLM_PROVIDER', 'openai').lower()
+    if provider == 'openai':
+        key = current_app.config.get('OPENAI_API_KEY', '')
+    elif provider == 'anthropic':
+        key = current_app.config.get('ANTHROPIC_API_KEY', '')
+    else:
+        return False
+    return bool(key and key.strip() and not key.startswith('your-'))
+
+
+def get_effective_mode(user):
+    """Returns the recommendation mode to actually use.
+    
+    If the user has 'llm' mode stored but no API key is configured,
+    silently falls back to 'local' so nothing crashes.
+    """
+    stored = user.llm_preferences.get(
+        'recommendation_mode',
+        current_app.config.get('RECOMMENDATION_MODE', 'local')
+    )
+    if stored == 'llm' and not is_llm_configured():
+        return 'local'
+    return stored
+
 def get_or_create_default_user():
     """Helper to ensure a default user exists for this single-user system.
     
@@ -20,7 +47,11 @@ def get_or_create_default_user():
     if user:
         return user
     try:
-        user = UserProfile(username="default")
+        # Default new users to local mode — LLM requires explicit opt-in
+        user = UserProfile(
+            username="default",
+            llm_preferences={"recommendation_mode": "local"}
+        )
         db.session.add(user)
         db.session.commit()
         return user
@@ -132,8 +163,8 @@ def generate_queue():
                 "count": 0
             }), 200
             
-        # Determine recommendation mode
-        rec_mode = user.llm_preferences.get("recommendation_mode", current_app.config.get("RECOMMENDATION_MODE", "llm"))
+        # Determine effective recommendation mode (falls back to local if LLM unconfigured)
+        rec_mode = get_effective_mode(user)
         
         recommendations = []
         if rec_mode == "local":
@@ -389,12 +420,26 @@ def recommendation_mode():
                 "mode": mode
             }), 200
         else:
-            current_mode = user.llm_preferences.get(
-                "recommendation_mode", 
-                current_app.config.get("RECOMMENDATION_MODE", "llm")
-            )
+            current_mode = get_effective_mode(user)
             return jsonify({"status": "success", "mode": current_mode}), 200
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Error in recommendation_mode: {str(e)}")
         return jsonify({"status": "error", "message": "An internal error occurred."}), 500
+
+
+@queue_bp.route('/capabilities', methods=['GET'])
+def get_capabilities():
+    """Returns what features are available based on current server configuration.
+    The frontend uses this to hide unavailable options (e.g. AI mode tab).
+    """
+    llm_available = is_llm_configured()
+    provider = current_app.config.get('LLM_PROVIDER', 'openai').lower() if llm_available else None
+    return jsonify({
+        "status": "success",
+        "capabilities": {
+            "llm_available": llm_available,
+            "llm_provider": provider,
+            "local_engine": True,
+        }
+    }), 200

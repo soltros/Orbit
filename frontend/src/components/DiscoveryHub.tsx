@@ -10,6 +10,7 @@ export const DiscoveryHub: React.FC = () => {
     clearQueue, 
     refreshQueue,
     recommendationMode,
+    llmAvailable,
     acousticStats,
     setRecommendationMode,
     refreshStats
@@ -55,8 +56,9 @@ export const DiscoveryHub: React.FC = () => {
         </button>
       </div>
 
-      {/* Mode Selector Tabs */}
-      <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-slate-950/60 border border-white/5 mb-4">
+      {/* Mode Selector Tabs — Only show if LLM is actually configured with an API key */}
+      {llmAvailable && (
+        <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-slate-950/60 border border-white/5 mb-4">
         <button
           onClick={() => setRecommendationMode('llm')}
           className={`flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold rounded-lg transition duration-200 cursor-pointer ${
@@ -79,7 +81,8 @@ export const DiscoveryHub: React.FC = () => {
           <Cpu className="w-3.5 h-3.5" />
           Local Engine
         </button>
-      </div>
+        </div>
+      )}
 
       {/* Dynamic Content Panel */}
       {recommendationMode === 'llm' ? (

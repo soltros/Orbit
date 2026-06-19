@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request, current_app
 from sqlalchemy import func
 from app import db
 from app.models import Track, Genre, InteractionHistory, QueueItem
-from app.routes.queue_routes import get_or_create_default_user
+from app.routes.queue_routes import get_or_create_default_user, get_effective_mode
 
 library_bp = Blueprint('library', __name__, url_prefix='/api/library')
 
@@ -138,10 +138,7 @@ def seed_station():
         db.session.commit()
 
         # Now generate recommendations based on this seed
-        rec_mode = user.llm_preferences.get(
-            "recommendation_mode",
-            current_app.config.get("RECOMMENDATION_MODE", "local")
-        )
+        rec_mode = get_effective_mode(user)
 
         recommendations = []
         if rec_mode == "local":

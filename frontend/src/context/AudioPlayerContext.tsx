@@ -41,6 +41,7 @@ interface AudioPlayerContextType {
   userProfile: UserProfile | null;
   error: string | null;
   recommendationMode: 'llm' | 'local';
+  llmAvailable: boolean;  // true only when a real API key is configured server-side
   acousticStats: {
     cached_tracks: number;
     analyzed_tracks: number;
@@ -81,7 +82,9 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [isLoading, setIsLoading] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [recommendationMode, setRecommendationModeState] = useState<'llm' | 'local'>('llm');
+  // Default to local — backend will confirm actual mode and capabilities on first load
+  const [recommendationMode, setRecommendationModeState] = useState<'llm' | 'local'>('local');
+  const [llmAvailable, setLlmAvailable] = useState(false);
   const [acousticStats, setAcousticStats] = useState<any | null>(null);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -128,7 +131,8 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     audio.addEventListener('waiting', onWaiting);
     audio.addEventListener('canplay', onCanPlay);
 
-    // Initial load
+    // Initial load — capabilities first so UI reflects reality before rendering
+    refreshCapabilities();
     refreshMode();
     refreshStats();
     refreshQueue();
@@ -502,6 +506,18 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   };
 
+  const refreshCapabilities = async () => {
+    try {
+      const res = await fetch('/api/queue/capabilities');
+      const data = await res.json();
+      if (data.status === 'success') {
+        setLlmAvailable(data.capabilities.llm_available);
+      }
+    } catch (err) {
+      console.error("Failed to load capabilities:", err);
+    }
+  };
+
   const refreshMode = async () => {
     try {
       const res = await fetch('/api/queue/mode');
@@ -580,6 +596,7 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       userProfile,
       error,
       recommendationMode,
+      llmAvailable,
       acousticStats,
       togglePlay,
       playTrack,
