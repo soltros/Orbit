@@ -69,7 +69,6 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     volumes:
       - db-data:/app/data                        # Persistent SQLite storage
-      - ${MUSIC_DIR:-/music}:/music              # Mounts host music folder to container for scanning/ NSP exports
     networks:
       - orbit-network
     labels:
@@ -94,11 +93,8 @@ services:
     command: python worker.py                    # Overrides the Flask server run command
     environment:
       - DATABASE_PATH=${DATABASE_PATH:-/app/data/orbit.db}
-      - MUSIC_DIR_CONTAINER=/music
-      - MUSIC_DIR_HOST=${MUSIC_DIR:-/music}
     volumes:
       - db-data:/app/data                        # Accesses same database to update tracks
-      - ${MUSIC_DIR:-/music}:/music:ro           # Read-only raw music mount (safer)
     networks:
       - orbit-network
     deploy:

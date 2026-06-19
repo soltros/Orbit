@@ -75,9 +75,8 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - RECOMMENDATION_MODE=${RECOMMENDATION_MODE:-local}
     volumes:
-      - ./backend:/app              # Bind-mount source for hot-reload
-      - ./dev/data:/app/data        # SQLite stored in dev/data/ (inspectable on host)
-      - ./dev/music:/music          # Music dir for NSP playlist file exports
+      - ./backend:/app:ro                     # Mounts backend code for hot-reloading
+      - ./dev/data:/app/data                  # Maps SQLite DB to local dev/data folder
     networks:
       - orbit-dev-network
     depends_on:
@@ -97,11 +96,9 @@ services:
     command: python worker.py
     environment:
       - DATABASE_PATH=${DATABASE_PATH:-/app/data/orbit_dev.db}
-      - MUSIC_DIR_CONTAINER=/music
     volumes:
-      - ./backend:/app              # Bind-mount source
-      - ./dev/data:/app/data        # Same database as backend
-      - ./dev/music:/music:ro       # Read-only music mount for analysis
+      - ./backend:/app:ro                     # Hot-reloads worker code
+      - ./dev/data:/app/data                  # Accesses same dev database for analysis
     networks:
       - orbit-dev-network
     depends_on:

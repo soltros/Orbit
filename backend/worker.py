@@ -1,10 +1,13 @@
 import os
 import time
 import logging
+import tempfile
+import requests
 import librosa
 import numpy as np
 from app import create_app, db
 from app.models import Track
+from app.subsonic import SubsonicClient
 
 # Configure logging
 logging.basicConfig(
@@ -19,43 +22,7 @@ logger = logging.getLogger("orbit-worker")
 # Initialize Flask app context to access SQLAlchemy models
 app = create_app()
 
-def resolve_container_path(subsonic_path, base_music_dir="/music"):
-    """
-    Resolves the physical track path inside the docker container.
-    Handles relative path joins and folder structure differences securely.
-    """
-    if not subsonic_path:
-        return None
-        
-    # Standardize separator and strip leading slashes/dots
-    clean_path = subsonic_path.replace('\\', '/')
-    while clean_path.startswith('/') or clean_path.startswith('.'):
-        clean_path = clean_path[1:]
-    
-    # Candidate 1: Direct join securely
-    path1 = os.path.abspath(os.path.join(base_music_dir, clean_path))
-    if path1.startswith(base_music_dir) and os.path.exists(path1):
-        return path1
-        
-    # Candidate 2: Strip top folder (e.g. "Music/Artist/Song.mp3" -> "/music/Artist/Song.mp3")
-    parts = clean_path.split('/')
-    if len(parts) > 1:
-        path2 = os.path.abspath(os.path.join(base_music_dir, *parts[1:]))
-        if path2.startswith(base_music_dir) and os.path.exists(path2):
-            return path2
-            
-    # Candidate 3: Filename matching fallback
-    filename = parts[-1]
-    # Search for filename inside base_music_dir (limit search space to prevent CPU lock)
-    for root, dirs, files in os.walk(base_music_dir):
-        if filename in files:
-            return os.path.join(root, filename)
-            
-    # Return path1 as best effort, even if not exists, but ensure it's inside base_music_dir
-    if path1.startswith(base_music_dir):
-        return path1
-    return None
-
+# Removed resolve_container_path since we now download directly from the Subsonic server
 def extract_acoustic_features(file_path):
     """
     Extracts a 27-dimensional acoustic feature vector from the raw audio file:
@@ -132,17 +99,34 @@ def process_single_track(track):
     """Processes a single pending track, saving results to the SQLite database."""
     logger.info(f"Processing track: {track.title} - {track.artist} (ID: {track.id})")
     
-    resolved_path = resolve_container_path(track.path)
-    if not resolved_path or not os.path.exists(resolved_path):
-        error_msg = f"Audio file not found at container path: {resolved_path or track.path}"
-        logger.error(error_msg)
+    url = app.config.get('SUBSONIC_URL')
+    user = app.config.get('SUBSONIC_USER')
+    password = app.config.get('SUBSONIC_PASS')
+    
+    if not url or not user or not password:
+        logger.error("Missing Subsonic credentials in settings. Cannot download track.")
         track.acoustic_status = 'failed'
-        track.acoustic_error = error_msg
+        track.acoustic_error = "Missing Subsonic credentials."
         db.session.commit()
         return False
         
+    client = SubsonicClient(base_url=url, username=user, password=password)
+    stream_url = client.get_stream_url(track.id)
+    
+    # Download the track to a temporary file
+    temp_fd, temp_path = tempfile.mkstemp(suffix=".audio")
+    os.close(temp_fd)
+    
     try:
-        features = extract_acoustic_features(resolved_path)
+        logger.info(f"Downloading track {track.id} from Navidrome...")
+        response = requests.get(stream_url, stream=True, timeout=30)
+        response.raise_for_status()
+        with open(temp_path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+                
+        # Analyze the downloaded file
+        features = extract_acoustic_features(temp_path)
         
         # Save updates
         track.acoustic_embedding = features["embedding"]
@@ -165,6 +149,13 @@ def process_single_track(track):
         track.acoustic_error = error_msg
         db.session.commit()
         return False
+    finally:
+        # Always clean up the temp file
+        if os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except Exception as cleanup_err:
+                logger.error(f"Failed to delete temp file {temp_path}: {cleanup_err}")
 
 def run_worker_loop():
     logger.info("Orbit acoustic analysis worker started successfully.")
