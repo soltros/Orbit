@@ -40,6 +40,7 @@ interface AudioPlayerContextType {
   isLoading: boolean;
   userProfile: UserProfile | null;
   error: string | null;
+  likedTracks: Set<string>;
   recommendationMode: 'llm' | 'local';
   llmAvailable: boolean;  // true only when a real API key is configured server-side
   acousticStats: {
@@ -82,6 +83,7 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [isLoading, setIsLoading] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [likedTracks, setLikedTracks] = useState<Set<string>>(new Set());
   // Default to local — backend will confirm actual mode and capabilities on first load
   const [recommendationMode, setRecommendationModeState] = useState<'llm' | 'local'>('local');
   const [llmAvailable, setLlmAvailable] = useState(false);
@@ -484,15 +486,31 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const likeTrack = async (trackId: string) => {
     try {
-      await fetch(`/api/queue/like/${trackId}`, { method: 'POST' });
+      setLikedTracks(prev => new Set(prev).add(trackId));
+      const res = await fetch(`/api/queue/like/${trackId}`, { method: 'POST' });
+      const data = await res.json();
+      if (!data.subsonic_synced) {
+        console.warn("Track liked locally, but failed to sync to Subsonic.");
+      }
       await refreshProfile(); // Refresh taste profile representation
     } catch (err) {
       console.error("Like track failed:", err);
+      // Revert optimistic update
+      setLikedTracks(prev => {
+        const next = new Set(prev);
+        next.delete(trackId);
+        return next;
+      });
     }
   };
 
   const dislikeTrack = async (trackId: string) => {
     try {
+      setLikedTracks(prev => {
+        const next = new Set(prev);
+        next.delete(trackId);
+        return next;
+      });
       await fetch(`/api/queue/dislike/${trackId}`, { method: 'POST' });
       await refreshQueue(); // Refresh upcoming queue in case it got cleared
       await refreshProfile();
@@ -595,6 +613,7 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       isLoading,
       userProfile,
       error,
+      likedTracks,
       recommendationMode,
       llmAvailable,
       acousticStats,

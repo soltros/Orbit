@@ -23,6 +23,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ onOpenBrowser }) => {
     setVolume,
     toggleMute,
     acousticStats,
+    likedTracks,
   } = useAudioPlayer();
 
   const formatTime = (secs: number) => {
@@ -159,12 +160,21 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ onOpenBrowser }) => {
 
         {/* Like */}
         <button
-          onClick={() => hasTrack && likeTrack(currentTrack.track.id)}
+          onClick={() => {
+            if (!hasTrack) return;
+            const isLiked = likedTracks.has(currentTrack.track.id);
+            if (isLiked) dislikeTrack(currentTrack.track.id);
+            else likeTrack(currentTrack.track.id);
+          }}
           disabled={!hasTrack}
-          className="p-3 text-gray-400 hover:text-emerald-400 disabled:opacity-30 transition duration-200"
+          className={`p-3 transition duration-200 disabled:opacity-30 ${
+            hasTrack && likedTracks.has(currentTrack.track.id)
+              ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]'
+              : 'text-gray-400 hover:text-emerald-400'
+          }`}
           title="Like / Star Song"
         >
-          <Heart className="w-5 h-5" />
+          <Heart className={`w-5 h-5 ${hasTrack && likedTracks.has(currentTrack.track.id) ? 'fill-emerald-400' : ''}`} />
         </button>
 
         {/* Skip */}
