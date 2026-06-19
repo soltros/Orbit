@@ -18,7 +18,7 @@ def get_filename_or_suffix(path, parts_count=3):
     return '/'.join(parts[-parts_count:]).lower()
 
 @click.command('sync-subsonic')
-@click.option('--limit', default=10000, help='Maximum number of songs to sync.')
+@click.option('--limit', default=1000000, help='Maximum number of songs to sync.')
 @with_appcontext
 def sync_subsonic_command(limit):
     """Fetch all tracks from Subsonic/Navidrome and populate the local cache database."""

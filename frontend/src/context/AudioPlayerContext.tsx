@@ -178,6 +178,17 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   }, [currentTrack]);
 
+  // Periodic polling for acoustic analysis progress
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (acousticStats && acousticStats.pending_analysis > 0) {
+      interval = setInterval(refreshStats, 5000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [acousticStats?.pending_analysis]);
+
   // Synchronize queue size:
   // - If queue is empty but tracks exist in DB → auto-generate and play
   // - If queue is running low (< 3) → top it up silently
