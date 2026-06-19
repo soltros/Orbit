@@ -36,7 +36,6 @@ def sync_subsonic_command(limit):
     
     # We will try a few wildcard/all queries in order if the first returns nothing
     search_queries = [" ", "*", ""]
-    songs = []
     
     for query in search_queries:
         try:
@@ -165,7 +164,10 @@ def ingest_mutagen_command(json_path):
         if matched_track:
             # Found a match, update BPM and custom tags
             if bpm is not None:
-                matched_track.bpm = int(bpm)
+                try:
+                    matched_track.bpm = int(bpm)
+                except (ValueError, TypeError):
+                    pass
             
             if custom_tags:
                 # Merge custom tags if existing

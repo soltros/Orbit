@@ -22,24 +22,26 @@ app = create_app()
 def resolve_container_path(subsonic_path, base_music_dir="/music"):
     """
     Resolves the physical track path inside the docker container.
-    Handles relative path joins and folder structure differences.
+    Handles relative path joins and folder structure differences securely.
     """
     if not subsonic_path:
         return None
         
-    # Standardize separator
+    # Standardize separator and strip leading slashes/dots
     clean_path = subsonic_path.replace('\\', '/')
+    while clean_path.startswith('/') or clean_path.startswith('.'):
+        clean_path = clean_path[1:]
     
-    # Candidate 1: Direct join
-    path1 = os.path.join(base_music_dir, clean_path.lstrip('/'))
-    if os.path.exists(path1):
+    # Candidate 1: Direct join securely
+    path1 = os.path.abspath(os.path.join(base_music_dir, clean_path))
+    if path1.startswith(base_music_dir) and os.path.exists(path1):
         return path1
         
     # Candidate 2: Strip top folder (e.g. "Music/Artist/Song.mp3" -> "/music/Artist/Song.mp3")
-    parts = clean_path.strip('/').split('/')
+    parts = clean_path.split('/')
     if len(parts) > 1:
-        path2 = os.path.join(base_music_dir, *parts[1:])
-        if os.path.exists(path2):
+        path2 = os.path.abspath(os.path.join(base_music_dir, *parts[1:]))
+        if path2.startswith(base_music_dir) and os.path.exists(path2):
             return path2
             
     # Candidate 3: Filename matching fallback
@@ -49,7 +51,10 @@ def resolve_container_path(subsonic_path, base_music_dir="/music"):
         if filename in files:
             return os.path.join(root, filename)
             
-    return path1
+    # Return path1 as best effort, even if not exists, but ensure it's inside base_music_dir
+    if path1.startswith(base_music_dir):
+        return path1
+    return None
 
 def extract_acoustic_features(file_path):
     """

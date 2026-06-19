@@ -19,7 +19,8 @@ def ping():
         client.ping()
         return jsonify({"status": "success", "message": "Successfully connected to Subsonic/Navidrome server."}), 200
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        current_app.logger.error(f"Error in ping: {str(e)}")
+        return jsonify({"status": "error", "message": "An internal error occurred."}), 500
 
 @subsonic_bp.route('/playlists', methods=['GET'])
 def get_playlists():
@@ -28,7 +29,8 @@ def get_playlists():
         playlists = client.get_playlists()
         return jsonify({"status": "success", "playlists": playlists}), 200
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        current_app.logger.error(f"Error fetching playlists: {str(e)}")
+        return jsonify({"status": "error", "message": "An internal error occurred."}), 500
 
 @subsonic_bp.route('/playlists/<playlist_id>', methods=['GET'])
 def get_playlist(playlist_id):
@@ -37,7 +39,8 @@ def get_playlist(playlist_id):
         playlist = client.get_playlist(playlist_id)
         return jsonify({"status": "success", "playlist": playlist}), 200
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        current_app.logger.error(f"Error fetching playlist {playlist_id}: {str(e)}")
+        return jsonify({"status": "error", "message": "An internal error occurred."}), 500
 
 @subsonic_bp.route('/star/<track_id>', methods=['POST'])
 def star_track(track_id):
@@ -46,7 +49,8 @@ def star_track(track_id):
         client.star_track(track_id, star=True)
         return jsonify({"status": "success", "message": f"Track {track_id} starred successfully."}), 200
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        current_app.logger.error(f"Error starring track {track_id}: {str(e)}")
+        return jsonify({"status": "error", "message": "An internal error occurred."}), 500
 
 @subsonic_bp.route('/unstar/<track_id>', methods=['POST'])
 def unstar_track(track_id):
@@ -55,7 +59,8 @@ def unstar_track(track_id):
         client.star_track(track_id, star=False)
         return jsonify({"status": "success", "message": f"Track {track_id} unstarred successfully."}), 200
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        current_app.logger.error(f"Error unstarring track {track_id}: {str(e)}")
+        return jsonify({"status": "error", "message": "An internal error occurred."}), 500
 
 @subsonic_bp.route('/stream/<track_id>', methods=['GET'])
 def stream_track(track_id):
@@ -86,7 +91,8 @@ def stream_track(track_id):
             headers=response_headers
         )
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        current_app.logger.error(f"Error streaming track {track_id}: {str(e)}")
+        return jsonify({"status": "error", "message": "An internal error occurred."}), 500
 
 @subsonic_bp.route('/stats', methods=['GET'])
 def get_stats():
@@ -114,6 +120,7 @@ def get_stats():
         }), 200
     except Exception as e:
         # Subsonic offline, but sqlite might be online
+        current_app.logger.warning(f"Subsonic error fetching stats: {str(e)}")
         try:
             cached_tracks = Track.query.count()
             analyzed_tracks = Track.query.filter_by(acoustic_status='completed').count()
@@ -129,8 +136,10 @@ def get_stats():
                     "analyzed_tracks": analyzed_tracks,
                     "pending_tracks": pending_tracks,
                     "failed_tracks": failed_tracks,
-                    "error": str(e)
+                    "error": "Failed to connect to Subsonic server."
                 }
             }), 200
         except Exception as db_err:
-            return jsonify({"status": "error", "message": f"DB Error: {str(db_err)}, Subsonic Error: {str(e)}"}), 500
+            current_app.logger.error(f"DB Error: {str(db_err)}")
+            return jsonify({"status": "error", "message": "An internal error occurred."}), 500
+

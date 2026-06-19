@@ -97,7 +97,8 @@ def get_queue():
         }
         return jsonify({"status": "success", "queue": res}), 200
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        current_app.logger.error(f"Error fetching queue: {str(e)}")
+        return jsonify({"status": "error", "message": "An internal error occurred."}), 500
 
 @queue_bp.route('/generate', methods=['POST'])
 def generate_queue():
@@ -106,7 +107,10 @@ def generate_queue():
         
         # Get request options
         req_data = request.get_json() or {}
-        requested_count = min(req_data.get('count', 5), 10)
+        try:
+            requested_count = min(int(req_data.get('count', 5)), 10)
+        except (ValueError, TypeError):
+            requested_count = 5
         
         # Check current queue size
         existing_pending = QueueItem.query.filter_by(user_id=user.id, status='pending').count()
@@ -198,7 +202,8 @@ def generate_queue():
         }), 200
     except Exception as e:
         db.session.rollback()
-        return jsonify({"status": "error", "message": str(e)}), 500
+        current_app.logger.error(f"Error generating queue: {str(e)}")
+        return jsonify({"status": "error", "message": "An internal error occurred."}), 500
 
 @queue_bp.route('/play/<int:queue_item_id>', methods=['POST'])
 def play_track(queue_item_id):
@@ -237,7 +242,8 @@ def play_track(queue_item_id):
         return jsonify({"status": "success", "playing": q_item.to_dict()}), 200
     except Exception as e:
         db.session.rollback()
-        return jsonify({"status": "error", "message": str(e)}), 500
+        current_app.logger.error(f"Error playing track: {str(e)}")
+        return jsonify({"status": "error", "message": "An internal error occurred."}), 500
 
 @queue_bp.route('/skip/<int:queue_item_id>', methods=['POST'])
 def skip_track(queue_item_id):
@@ -271,7 +277,8 @@ def skip_track(queue_item_id):
         return generate_queue()
     except Exception as e:
         db.session.rollback()
-        return jsonify({"status": "error", "message": str(e)}), 500
+        current_app.logger.error(f"Error skipping track: {str(e)}")
+        return jsonify({"status": "error", "message": "An internal error occurred."}), 500
 
 @queue_bp.route('/like/<string:track_id>', methods=['POST'])
 def like_track(track_id):
@@ -299,7 +306,8 @@ def like_track(track_id):
         return jsonify({"status": "success", "subsonic_synced": subsonic_synced}), 200
     except Exception as e:
         db.session.rollback()
-        return jsonify({"status": "error", "message": str(e)}), 500
+        current_app.logger.error(f"Error liking track: {str(e)}")
+        return jsonify({"status": "error", "message": "An internal error occurred."}), 500
 
 @queue_bp.route('/dislike/<string:track_id>', methods=['POST'])
 def dislike_track(track_id):
@@ -330,7 +338,8 @@ def dislike_track(track_id):
         return jsonify({"status": "success", "subsonic_synced": subsonic_synced}), 200
     except Exception as e:
         db.session.rollback()
-        return jsonify({"status": "error", "message": str(e)}), 500
+        current_app.logger.error(f"Error disliking track: {str(e)}")
+        return jsonify({"status": "error", "message": "An internal error occurred."}), 500
 
 @queue_bp.route('/clear', methods=['POST'])
 def clear_queue():
@@ -341,7 +350,8 @@ def clear_queue():
         return jsonify({"status": "success", "message": "Queue cleared successfully."}), 200
     except Exception as e:
         db.session.rollback()
-        return jsonify({"status": "error", "message": str(e)}), 500
+        current_app.logger.error(f"Error clearing queue: {str(e)}")
+        return jsonify({"status": "error", "message": "An internal error occurred."}), 500
 
 @queue_bp.route('/mode', methods=['GET', 'POST'])
 def recommendation_mode():
@@ -375,4 +385,5 @@ def recommendation_mode():
             return jsonify({"status": "success", "mode": current_mode}), 200
     except Exception as e:
         db.session.rollback()
-        return jsonify({"status": "error", "message": str(e)}), 500
+        current_app.logger.error(f"Error in recommendation_mode: {str(e)}")
+        return jsonify({"status": "error", "message": "An internal error occurred."}), 500

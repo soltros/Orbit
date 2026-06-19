@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, current_app
 from app import db
 from app.models import UserProfile, InteractionHistory, Track, Genre
 from app.llm import LLMClient
@@ -16,7 +16,8 @@ def get_profile():
             "profile": user.to_dict()
         }), 200
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        current_app.logger.error(f"Error fetching profile: {str(e)}")
+        return jsonify({"status": "error", "message": "An internal error occurred."}), 500
 
 @profile_bp.route('/regenerate', methods=['POST'])
 def regenerate_profile():
@@ -62,7 +63,10 @@ def regenerate_profile():
         # 2. Summarize general library stats
         total_tracks = Track.query.count()
         bpm_tracks = Track.query.filter(Track.bpm.isnot(None)).all()
-        avg_bpm = int(sum(t.bpm for t in bpm_tracks) / len(bpm_tracks)) if bpm_tracks else None
+        if bpm_tracks and len(bpm_tracks) > 0:
+            avg_bpm = int(sum(t.bpm for t in bpm_tracks) / len(bpm_tracks))
+        else:
+            avg_bpm = None
         
         genres_in_db = Genre.query.all()
         genres_list = [g.name for g in genres_in_db]
@@ -95,4 +99,5 @@ def regenerate_profile():
         
     except Exception as e:
         db.session.rollback()
-        return jsonify({"status": "error", "message": str(e)}), 500
+        current_app.logger.error(f"Error regenerating profile: {str(e)}")
+        return jsonify({"status": "error", "message": "An internal error occurred."}), 500
