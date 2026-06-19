@@ -2,7 +2,11 @@ import React, { useState } from 'react';
 import { useAudioPlayer } from '../context/AudioPlayerContext';
 import { RefreshCw, Radio, User, Sliders, Cpu, BrainCircuit, Activity } from 'lucide-react';
 
-export const DiscoveryHub: React.FC = () => {
+interface DiscoveryHubProps {
+  onOpenBrowser?: () => void;
+}
+
+export const DiscoveryHub: React.FC<DiscoveryHubProps> = ({ onOpenBrowser }) => {
   const { 
     userProfile, 
     regenerateProfile, 
@@ -175,10 +179,13 @@ export const DiscoveryHub: React.FC = () => {
 
       {/* Admin / Utility actions */}
       <div className="mt-4 flex items-center gap-2 justify-between">
-        <span className="text-[11px] text-gray-600 flex items-center gap-1">
+        <button 
+          onClick={onOpenBrowser}
+          className="text-[11px] font-semibold text-gray-400 hover:text-white flex items-center gap-1.5 transition cursor-pointer"
+        >
           <Sliders className="w-3.5 h-3.5" />
           Manage Station
-        </span>
+        </button>
         <button
           onClick={handleResetQueue}
           className="text-[10px] font-bold text-red-400/80 hover:text-red-300 bg-red-500/5 hover:bg-red-500/10 border border-red-500/10 px-2.5 py-1 rounded-lg cursor-pointer transition duration-200"

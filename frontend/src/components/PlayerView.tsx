@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAudioPlayer } from '../context/AudioPlayerContext';
-import { Play, Pause, SkipForward, Volume2, VolumeX, Heart, ThumbsDown, Users } from 'lucide-react';
+import { Play, Pause, SkipForward, Volume2, VolumeX, Heart, ThumbsDown, Users, Download } from 'lucide-react';
 
 interface PlayerViewProps {
   onOpenBrowser: () => void;
@@ -185,6 +185,25 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ onOpenBrowser }) => {
           title="Skip Song"
         >
           <SkipForward className="w-5 h-5" />
+        </button>
+
+        {/* Download */}
+        <button
+          onClick={() => {
+            if (!hasTrack) return;
+            const url = `/api/subsonic/stream/${currentTrack.track.id}`;
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${currentTrack.track.artist} - ${currentTrack.track.title}.flac`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+          }}
+          disabled={!hasTrack}
+          className="p-3 text-gray-400 hover:text-indigo-400 disabled:opacity-30 transition duration-200"
+          title="Download Song"
+        >
+          <Download className="w-5 h-5" />
         </button>
       </div>
 

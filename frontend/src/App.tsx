@@ -160,7 +160,7 @@ const OrbitApp: React.FC = () => {
       <main className="flex-grow w-full max-w-5xl mx-auto px-6 py-6 grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
         {/* Left Side: Discovery & Stats */}
         <div className="md:col-span-4 order-3 md:order-1 flex flex-col gap-6">
-          <DiscoveryHub />
+          <DiscoveryHub onOpenBrowser={() => setBrowserOpen(true)} />
         </div>
 
         {/* Center: Audio Player */}
