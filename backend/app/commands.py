@@ -24,6 +24,10 @@ def sync_subsonic_command(limit):
     """Fetch all tracks from Subsonic/Navidrome and populate the local cache database."""
     click.echo("Starting Subsonic synchronization...")
     
+    lock_file = "/tmp/orbit_sync.lock"
+    with open(lock_file, "w") as f:
+        f.write("syncing")
+        
     try:
         client = get_subsonic_client()
     except Exception as e:
@@ -96,6 +100,9 @@ def sync_subsonic_command(limit):
             continue
             
     click.echo(f"Sync complete. Total tracks in database: {Track.query.count()}")
+    
+    if os.path.exists(lock_file):
+        os.remove(lock_file)
 
 @click.command('ingest-mutagen')
 @click.argument('json_path')

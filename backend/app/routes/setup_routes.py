@@ -1,6 +1,8 @@
 import os
 import json
 from flask import Blueprint, current_app, jsonify, request
+from app import db
+from app.models import Track, QueueItem, InteractionHistory
 from app.subsonic import SubsonicClient
 
 setup_bp = Blueprint('setup', __name__, url_prefix='/api/setup')
@@ -36,6 +38,20 @@ def save_settings():
         client.ping()
     except Exception as e:
         return jsonify({"status": "error", "message": f"Could not connect to Navidrome: {str(e)}"}), 400
+
+    # Check if URL is changing to trigger a database wipe
+    existing_url = current_app.config.get('SUBSONIC_URL')
+    url_changed = existing_url and existing_url != url
+    
+    if url_changed:
+        try:
+            QueueItem.query.delete()
+            InteractionHistory.query.delete()
+            Track.query.delete()
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"Failed to wipe old server data: {str(e)}")
 
     # Build settings dict
     settings = {}

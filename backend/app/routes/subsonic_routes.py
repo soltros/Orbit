@@ -243,3 +243,16 @@ def sync_subsonic():
         current_app.logger.error(f"Failed to start sync: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
+@subsonic_bp.route('/sync/status', methods=['GET'])
+def sync_status():
+    is_syncing = os.path.exists("/tmp/orbit_sync.lock")
+    try:
+        count = Track.query.count()
+    except Exception:
+        count = 0
+    return jsonify({
+        "status": "success",
+        "is_syncing": is_syncing,
+        "track_count": count
+    }), 200
+

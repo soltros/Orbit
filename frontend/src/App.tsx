@@ -13,6 +13,9 @@ const OrbitApp: React.FC = () => {
   const [browserOpen, setBrowserOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isSetupNeeded, setIsSetupNeeded] = useState<boolean | null>(null);
+  
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncCount, setSyncCount] = useState(0);
 
   const hasTracks = (acousticStats?.cached_tracks ?? 0) > 0;
 
@@ -24,6 +27,23 @@ const OrbitApp: React.FC = () => {
       })
       .catch(() => setIsSetupNeeded(false)); // fallback
   }, []);
+
+  React.useEffect(() => {
+    if (!isAuthenticated) return;
+    
+    const checkSync = async () => {
+      try {
+        const res = await fetch('/api/subsonic/sync/status');
+        const data = await res.json();
+        setIsSyncing(data.is_syncing);
+        setSyncCount(data.track_count);
+      } catch (err) {}
+    };
+
+    checkSync();
+    const interval = setInterval(checkSync, 3000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
 
   if (isSetupNeeded === null) {
     return <div className="min-h-screen bg-[#050508]"></div>;
@@ -78,18 +98,25 @@ const OrbitApp: React.FC = () => {
 
           <button
             onClick={async () => {
+              if (isSyncing) return;
               try {
+                setIsSyncing(true);
                 await fetch('/api/subsonic/sync', { method: 'POST' });
-                alert('Sync started in the background. Check logs for progress!');
               } catch (err) {
                 console.error(err);
+                setIsSyncing(false);
               }
             }}
             title="Sync Subsonic Database"
-            className="flex items-center gap-1.5 text-xs font-semibold text-indigo-400 hover:text-indigo-300 bg-indigo-500/5 hover:bg-indigo-500/10 border border-indigo-500/10 px-3 py-1.5 rounded-lg transition duration-150"
+            disabled={isSyncing}
+            className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition duration-150 ${
+              isSyncing 
+                ? 'text-indigo-300 bg-indigo-500/20 border-indigo-500/20 cursor-not-allowed'
+                : 'text-indigo-400 hover:text-indigo-300 bg-indigo-500/5 hover:bg-indigo-500/10 border border-indigo-500/10'
+            }`}
           >
-            <RefreshCw className="w-3.5 h-3.5" />
-            Sync
+            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+            {isSyncing ? `Syncing... (${syncCount})` : 'Sync'}
           </button>
 
           <button
