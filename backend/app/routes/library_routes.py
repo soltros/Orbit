@@ -145,10 +145,9 @@ def seed_station():
         # Now generate recommendations based on this seed
         rec_mode = get_effective_mode(user)
 
-        recommendations = []
         if rec_mode == "local":
             from app.recommendations import get_hybrid_recommendations
-            recommendations = get_hybrid_recommendations(user, count=5)
+            recommendations = get_hybrid_recommendations(user, count=20)
         else:
             from app.routes.queue_routes import get_candidate_tracks
             from app.llm import LLMClient
@@ -168,7 +167,7 @@ def seed_station():
                         "timestamp": history_entry.timestamp.isoformat()
                     }],
                     candidate_tracks=candidates,
-                    count=5
+                    count=20
                 )
 
         # Insert recommended tracks after the seed

@@ -186,7 +186,7 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     if (upcomingQueue.length === 0 && !currentTrack && cachedTracks > 0 && !isGeneratingRef.current) {
       // Initial boot: library is synced but nothing is playing yet
       triggerQueueGeneration(true);
-    } else if (upcomingQueue.length > 0 && upcomingQueue.length < 3 && !isGeneratingRef.current) {
+    } else if (upcomingQueue.length > 0 && upcomingQueue.length < 5 && !isGeneratingRef.current) {
       triggerQueueGeneration(false);
     }
   }, [upcomingQueue, acousticStats]);
@@ -225,7 +225,7 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       const res = await fetch('/api/queue/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ count: 5 })
+        body: JSON.stringify({ count: 20 })
       });
       const data = await res.json();
       if (data.status === 'success') {

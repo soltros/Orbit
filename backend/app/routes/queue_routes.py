@@ -154,13 +154,13 @@ def generate_queue():
         # Get request options
         req_data = request.get_json(silent=True) or {}
         try:
-            requested_count = min(int(req_data.get('count', 5)), 10)
+            requested_count = min(int(req_data.get('count', 20)), 50)
         except (ValueError, TypeError):
-            requested_count = 5
+            requested_count = 20
         
         # Check current queue size
         existing_pending = QueueItem.query.filter_by(user_id=user.id, status='pending').count()
-        if existing_pending >= 5:
+        if existing_pending >= 20:
             return jsonify({
                 "status": "success",
                 "message": "Queue already has sufficient pending tracks.",
