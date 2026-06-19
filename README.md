@@ -74,19 +74,25 @@ Orbit is configured via environment variables inside a `.env` file at the reposi
 - Docker Engine v20.10+
 - Docker Compose v2.0+
 
-### Step 1: Run Initialization
-Execute the setup script:
+### Step 1: Create Environment Configuration
+Copy the template `.env.example` file to `.env` and open it to fill out your subsonic credentials, volume mounts, and LLM API keys:
 ```bash
-./run.sh
+cp .env.example .env
 ```
-The script will inspect your system, check for Docker, create your `.env` configuration file, prompt you for credentials, build the multi-stage Docker images, and start the services.
 
-### Step 2: Index Your Subsonic Library
-Instruct Orbit to crawl and cache your Subsonic library metadata:
+### Step 2: Launch with Docker Compose
+Orbit is fully containerized and uses `docker compose` for orchestration. To build and start all services in detached mode, execute:
+```bash
+docker compose up -d --build
+```
+This launches `orbit-traefik`, `orbit-backend`, `orbit-worker`, and `orbit-frontend` connected over a secure bridge network.
+
+### Step 3: Index Your Subsonic Library
+Instruct Orbit to crawl and cache your Subsonic library metadata inside the SQLite database:
 ```bash
 docker compose exec backend flask sync-subsonic
 ```
-*Note: This command can be re-run at any time to sync newly added songs.*
+*Note: You can re-run this command at any time to sync newly added songs.*
 
 ---
 
