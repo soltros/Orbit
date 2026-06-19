@@ -118,6 +118,12 @@ services:
       context: ./frontend                        # Build using the multi-stage Dockerfile inside /frontend
       dockerfile: Dockerfile
     container_name: orbit-frontend
+    # Mesh Network Direct Access (ZeroTier, Netbird, Nebula, etc.):
+    # If you want to bypass Traefik and access Orbit directly using your server's mesh IP:
+    #   1. Disable Traefik's port mappings (or comment out the entire Traefik service).
+    #   2. Uncomment the ports block below to bind Nginx directly to your host's port 80.
+    # ports:
+    #   - "80:80"
     networks:
       - orbit-network
     labels:

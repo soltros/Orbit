@@ -179,20 +179,32 @@ This saves an `upbeat_house_playlist.nsp` JSON file directly to `/music`, where 
 
 ---
 
-## Tailscale VPN Remote Access
+## Mesh VPN & Direct Remote Access (Tailscale, ZeroTier, Netbird, Nebula)
 
-To access your station securely from mobile devices without exposing ports to the public internet:
+Orbit is optimized for secure access across mesh networks without exposing your server directly to the public internet.
 
-1. Install Tailscale on the server hosting Orbit.
-2. Update your `.env` configuration file:
+### Option A: Using Mesh DNS Domains (Tailscale MagicDNS, Netbird DNS)
+If your mesh provider supports automatic DNS names:
+1. Ensure the VPN client is running on both the Orbit host and your client device.
+2. Edit your `.env` configuration file to use your server's mesh domain name:
    ```env
-   DOMAIN_NAME=your-server-magicdns-name.tailnet-name.ts.net
+   DOMAIN_NAME=your-server.mesh-domain-name.ts.net
    ```
-3. Restart Orbit:
+3. Restart Orbit (`docker compose down && docker compose up -d`). Traefik will automatically handle routing on that hostname.
+
+### Option B: Direct IP Routing (ZeroTier, Nebula, etc.)
+If your mesh network does not resolve custom DNS hosts and you wish to access Orbit directly via the server's private mesh IP address (e.g. `10.147.17.15`), you can bypass the Traefik reverse proxy entirely:
+1. Open `docker-compose.yml` and comment out or remove the `traefik` service ports mappings (lines 17-20) to free up port 80.
+2. Scroll to the `frontend` container service section and uncomment the ports block:
+   ```yaml
+   ports:
+     - "80:80"
+   ```
+3. Launch your containers:
    ```bash
-   docker compose down && docker compose up -d
+   docker compose up -d --build
    ```
-4. Install Tailscale on your mobile device. You can now access Orbit securely at `http://your-server-magicdns-name.tailnet-name.ts.net`.
+4. The Nginx frontend container is now bound directly to host port 80. It is pre-configured in [nginx.conf](file:///home/derrik/Documents/GitHub/Orbit/frontend/nginx.conf) to proxy `/api` and `/rest` paths internally. You can now access Orbit from any connected mesh device using the server's raw mesh IP address.
 
 ---
 
