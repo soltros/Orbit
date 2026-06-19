@@ -1,7 +1,7 @@
 import os
 import threading
 import requests
-from flask import Blueprint, current_app, jsonify, request, Response, stream_with_context, send_file
+from flask import Blueprint, current_app, jsonify, request, Response, stream_with_context, send_file, session
 from app.subsonic import SubsonicClient
 from app.models import Track
 
@@ -48,9 +48,9 @@ def trigger_buffer_tracks(track_ids, app):
         return
         
     config_copy = {
-        'SUBSONIC_URL': app.config.get('SUBSONIC_URL'),
-        'SUBSONIC_USER': app.config.get('SUBSONIC_USER'),
-        'SUBSONIC_PASS': app.config.get('SUBSONIC_PASS')
+        'SUBSONIC_URL': session.get('subsonic_url') or app.config.get('SUBSONIC_URL'),
+        'SUBSONIC_USER': session.get('subsonic_user') or app.config.get('SUBSONIC_USER'),
+        'SUBSONIC_PASS': session.get('subsonic_pass') or app.config.get('SUBSONIC_PASS')
     }
     
     for tid in track_ids:
@@ -59,10 +59,17 @@ def trigger_buffer_tracks(track_ids, app):
 subsonic_bp = Blueprint('subsonic', __name__, url_prefix='/api/subsonic')
 
 def get_subsonic_client():
+    url = session.get('subsonic_url') or current_app.config.get('SUBSONIC_URL')
+    user = session.get('subsonic_user') or current_app.config.get('SUBSONIC_USER')
+    password = session.get('subsonic_pass') or current_app.config.get('SUBSONIC_PASS')
+    
+    if not url or not user or not password:
+        raise Exception("Authentication required. Please log in.")
+        
     return SubsonicClient(
-        base_url=current_app.config['SUBSONIC_URL'],
-        username=current_app.config['SUBSONIC_USER'],
-        password=current_app.config['SUBSONIC_PASS']
+        base_url=url,
+        username=user,
+        password=password
     )
 
 @subsonic_bp.route('/ping', methods=['GET'])

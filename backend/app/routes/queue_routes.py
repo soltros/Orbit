@@ -42,7 +42,11 @@ def get_or_create_default_user():
     Uses the configured SUBSONIC_USER to represent the active user profile.
     Uses a try/except around the INSERT to gracefully handle the race condition.
     """
-    username = current_app.config.get("SUBSONIC_USER") or "default"
+    from flask import session
+    username = session.get("subsonic_user") or current_app.config.get("SUBSONIC_USER")
+    if not username:
+        raise Exception("Authentication required.")
+        
     user = UserProfile.query.filter_by(username=username).first()
     if user:
         return user

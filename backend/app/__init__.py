@@ -11,6 +11,10 @@ def create_app(config_class=Config):
 
     # Initialize Extensions
     db.init_app(app)
+    
+    from flask_session import Session
+    app.config["SESSION_SQLALCHEMY"] = db
+    Session(app)
 
     # Ensure the SQLite database directory exists
     db_dir = os.path.dirname(app.config["DATABASE_PATH"])
@@ -31,11 +35,14 @@ def create_app(config_class=Config):
         }), 200
 
     # Register blueprints
+    from app.routes.auth_routes import auth_bp
     from app.routes.subsonic_routes import subsonic_bp
     from app.routes.queue_routes import queue_bp
     from app.routes.profile_routes import profile_bp
     from app.routes.playlist_routes import playlist_bp
     from app.routes.library_routes import library_bp
+    
+    app.register_blueprint(auth_bp)
     app.register_blueprint(subsonic_bp)
     app.register_blueprint(queue_bp)
     app.register_blueprint(profile_bp)

@@ -4,13 +4,28 @@ import { PlayerView } from './components/PlayerView';
 import { QueueView } from './components/QueueView';
 import { DiscoveryHub } from './components/DiscoveryHub';
 import { ArtistBrowser } from './components/ArtistBrowser';
-import { Radio, AlertTriangle, Users } from 'lucide-react';
+import { LoginView } from './components/LoginView';
+import { Radio, AlertTriangle, Users, LogOut } from 'lucide-react';
 
 const OrbitApp: React.FC = () => {
   const { error, currentTrack, acousticStats } = useAudioPlayer();
   const [browserOpen, setBrowserOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const hasTracks = (acousticStats?.cached_tracks ?? 0) > 0;
+
+  if (!isAuthenticated) {
+    return <LoginView onLoginSuccess={() => setIsAuthenticated(true)} />;
+  }
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      setIsAuthenticated(false);
+    } catch (err) {
+      console.error('Logout failed', err);
+    }
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-[#050508] text-gray-100 pb-12">
@@ -41,6 +56,15 @@ const OrbitApp: React.FC = () => {
               Artists
             </button>
           )}
+
+          <button
+            onClick={handleLogout}
+            title="Log out"
+            className="flex items-center gap-1.5 text-xs font-semibold text-red-400 hover:text-red-300 bg-red-500/5 hover:bg-red-500/10 border border-red-500/10 px-3 py-1.5 rounded-lg transition duration-150"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            Logout
+          </button>
 
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>

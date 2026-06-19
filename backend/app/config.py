@@ -12,6 +12,11 @@ class Config:
     SQLALCHEMY_DATABASE_URI = f"sqlite:///{DATABASE_PATH}"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
+    # Session configuration
+    SESSION_TYPE = "sqlalchemy"
+    SESSION_PERMANENT = True
+    SESSION_USE_SIGNER = True
+    
     # Navidrome/Subsonic Connection
     SUBSONIC_URL = os.environ.get("SUBSONIC_URL")
     SUBSONIC_USER = os.environ.get("SUBSONIC_USER")
