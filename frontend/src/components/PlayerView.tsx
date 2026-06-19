@@ -27,6 +27,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ onOpenBrowser }) => {
   } = useAudioPlayer();
 
   const [artistInfo, setArtistInfo] = React.useState<any>(null);
+  const [trackInfo, setTrackInfo] = React.useState<any>(null);
   const [showBio, setShowBio] = React.useState(false);
 
   React.useEffect(() => {
@@ -36,7 +37,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ onOpenBrowser }) => {
       return;
     }
     
-    // Fetch Last.fm info if available
+    // Fetch Last.fm artist info
     fetch(`/api/lastfm/artist?name=${encodeURIComponent(currentTrack.track.artist)}`)
       .then(res => res.json())
       .then(data => {
@@ -44,6 +45,15 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ onOpenBrowser }) => {
          else setArtistInfo(null);
       })
       .catch(() => setArtistInfo(null));
+
+    // Fetch Last.fm track info for better album art
+    fetch(`/api/lastfm/track?artist=${encodeURIComponent(currentTrack.track.artist)}&track=${encodeURIComponent(currentTrack.track.title)}`)
+      .then(res => res.json())
+      .then(data => {
+         if (!data.error) setTrackInfo(data);
+         else setTrackInfo(null);
+      })
+      .catch(() => setTrackInfo(null));
   }, [currentTrack?.track.id]);
 
   const formatTime = (secs: number) => {
@@ -94,8 +104,27 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ onOpenBrowser }) => {
               alt="Cover Art" 
               className="w-full h-full object-cover"
               onError={(e) => {
-                if (artistInfo?.image) {
+                if (trackInfo?.image) {
+                  // Fallback 1: Last.fm Track/Album art
+                  (e.target as HTMLImageElement).src = trackInfo.image;
+                  // Don't loop if this fails too
+                  (e.target as HTMLImageElement).onerror = (e2) => {
+                    if (artistInfo?.image) {
+                      // Fallback 2: Last.fm Artist image
+                      (e2.target as HTMLImageElement).src = artistInfo.image;
+                      (e2.target as HTMLImageElement).onerror = (e3) => {
+                         (e3.target as HTMLImageElement).style.display = 'none';
+                      };
+                    } else {
+                      (e2.target as HTMLImageElement).style.display = 'none';
+                    }
+                  };
+                } else if (artistInfo?.image) {
+                  // Fallback 2: Last.fm Artist image directly
                   (e.target as HTMLImageElement).src = artistInfo.image;
+                  (e.target as HTMLImageElement).onerror = (e2) => {
+                     (e2.target as HTMLImageElement).style.display = 'none';
+                  };
                 } else {
                   (e.target as HTMLImageElement).style.display = 'none';
                 }
