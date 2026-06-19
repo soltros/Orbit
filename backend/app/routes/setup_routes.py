@@ -66,7 +66,7 @@ def save_settings():
             
     # Update settings
     for key in ['SUBSONIC_URL', 'SUBSONIC_USER', 'SUBSONIC_PASS', 
-                'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'LLM_PROVIDER', 'RECOMMENDATION_MODE']:
+                'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'LASTFM_API_KEY', 'LLM_PROVIDER', 'RECOMMENDATION_MODE']:
         if key in data:
             settings[key] = data[key]
             # Live-reload into current app config

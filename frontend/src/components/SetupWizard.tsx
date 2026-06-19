@@ -17,6 +17,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
   const [mode, setMode] = useState<'local' | 'llm'>('local');
   const [llmProvider, setLlmProvider] = useState<'openai' | 'anthropic'>('openai');
   const [apiKey, setApiKey] = useState('');
+  const [lastFmKey, setLastFmKey] = useState('');
 
   const handleNext = (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,6 +40,10 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
     if (mode === 'llm' && apiKey) {
       if (llmProvider === 'openai') payload.OPENAI_API_KEY = apiKey;
       else payload.ANTHROPIC_API_KEY = apiKey;
+    }
+
+    if (lastFmKey) {
+      payload.LASTFM_API_KEY = lastFmKey;
     }
 
     try {
@@ -203,6 +208,23 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
                   </div>
                 </div>
               )}
+
+              <div className="pt-4 border-t border-white/5 mt-4">
+                <h4 className="text-sm font-semibold text-gray-300 mb-2">Optional Integrations</h4>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <KeyRound className="h-5 w-5 text-gray-500" />
+                  </div>
+                  <input
+                    type="password"
+                    className="appearance-none rounded-xl relative block w-full px-3 py-3.5 pl-10 border border-white/10 bg-slate-950/50 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition duration-200"
+                    placeholder="Last.fm API Key (Optional)"
+                    value={lastFmKey}
+                    onChange={e => setLastFmKey(e.target.value)}
+                  />
+                  <p className="text-[10px] text-gray-400 mt-2 px-1">Enables rich artist bios, tags, and dynamic artist artwork.</p>
+                </div>
+              </div>
             </div>
 
             <button

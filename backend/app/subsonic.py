@@ -103,6 +103,13 @@ class SubsonicClient:
         query_string = '&'.join([f"{k}={v}" for k, v in params.items()])
         return f"{self.base_url}/rest/stream.view?{query_string}"
 
+    def get_cover_art_url(self, item_id, size=500):
+        params = self._get_auth_params()
+        params['id'] = item_id
+        params['size'] = size
+        query_string = '&'.join([f"{k}={v}" for k, v in params.items()])
+        return f"{self.base_url}/rest/getCoverArt.view?{query_string}"
+
     def search_songs(self, query=" ", count=500, offset=0):
         res = self._make_request("search3.view", {
             "query": query,

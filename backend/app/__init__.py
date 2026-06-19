@@ -37,6 +37,7 @@ def create_app(config_class=Config):
     from app.routes.profile_routes import profile_bp
     from app.routes.playlist_routes import playlist_bp
     from app.routes.library_routes import library_bp
+    from app.routes.lastfm_routes import lastfm_bp
     
     from app.routes.setup_routes import setup_bp
     
@@ -47,6 +48,7 @@ def create_app(config_class=Config):
     app.register_blueprint(profile_bp)
     app.register_blueprint(playlist_bp)
     app.register_blueprint(library_bp)
+    app.register_blueprint(lastfm_bp)
 
     # Register custom CLI commands
     from app.commands import register_commands

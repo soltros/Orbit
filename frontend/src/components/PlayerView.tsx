@@ -26,6 +26,26 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ onOpenBrowser }) => {
     likedTracks,
   } = useAudioPlayer();
 
+  const [artistInfo, setArtistInfo] = React.useState<any>(null);
+  const [showBio, setShowBio] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!currentTrack) {
+      setArtistInfo(null);
+      setShowBio(false);
+      return;
+    }
+    
+    // Fetch Last.fm info if available
+    fetch(`/api/lastfm/artist?name=${encodeURIComponent(currentTrack.track.artist)}`)
+      .then(res => res.json())
+      .then(data => {
+         if (!data.error) setArtistInfo(data);
+         else setArtistInfo(null);
+      })
+      .catch(() => setArtistInfo(null));
+  }, [currentTrack?.track.id]);
+
   const formatTime = (secs: number) => {
     if (isNaN(secs)) return '0:00';
     const m = Math.floor(secs / 60);
@@ -66,11 +86,31 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ onOpenBrowser }) => {
           <div className="absolute top-1/2 right-1 w-2.5 h-2.5 bg-purple-400 rounded-full shadow-lg shadow-purple-500/50"></div>
         </div>
 
-        {/* Center Vinyl/Planet */}
-        <div className={`relative w-24 h-24 bg-gradient-to-tr from-slate-950 to-indigo-950 rounded-full flex items-center justify-center border-2 border-indigo-500/40 shadow-inner ${isPlaying ? 'animate-[spin_6s_linear_infinite]' : ''}`}>
-          <div className="w-8 h-8 bg-slate-900 border-2 border-indigo-400/20 rounded-full flex items-center justify-center">
-            <div className="w-2.5 h-2.5 bg-indigo-400 rounded-full"></div>
-          </div>
+        {/* Center Vinyl/Planet (Album/Artist Art) */}
+        <div className={`relative w-32 h-32 bg-gradient-to-tr from-slate-950 to-indigo-950 rounded-full flex items-center justify-center border-2 border-indigo-500/40 shadow-inner overflow-hidden ${isPlaying ? 'animate-[spin_20s_linear_infinite]' : ''}`}>
+          {hasTrack ? (
+            <img 
+              src={`/api/subsonic/cover/${currentTrack.track.id}`} 
+              alt="Cover Art" 
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                if (artistInfo?.image) {
+                  (e.target as HTMLImageElement).src = artistInfo.image;
+                } else {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }
+              }}
+            />
+          ) : (
+            <div className="w-10 h-10 bg-slate-900 border-2 border-indigo-400/20 rounded-full flex items-center justify-center">
+              <div className="w-3 h-3 bg-indigo-400 rounded-full"></div>
+            </div>
+          )}
+          {hasTrack && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-6 h-6 bg-slate-900 border border-slate-700 rounded-full"></div>
+            </div>
+          )}
         </div>
         
         {/* Spinning state ring */}
@@ -83,9 +123,14 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ onOpenBrowser }) => {
       <div className="text-center w-full min-h-[5.5rem] flex flex-col justify-center px-4">
         {hasTrack ? (
           <>
-            <h2 className="text-xl font-bold text-gray-100 truncate">{currentTrack.track.title}</h2>
-            <p className="text-sm font-medium text-indigo-400 mt-1 truncate">{currentTrack.track.artist}</p>
-            <div className="flex items-center justify-center gap-3 mt-1.5">
+            <h2 className="text-xl font-bold text-gray-100 truncate cursor-pointer hover:text-indigo-300 transition" onClick={() => artistInfo?.bio && setShowBio(!showBio)}>
+              {currentTrack.track.title}
+            </h2>
+            <p className="text-sm font-medium text-indigo-400 mt-1 truncate cursor-pointer hover:text-indigo-300 transition" onClick={() => artistInfo?.bio && setShowBio(!showBio)}>
+              {currentTrack.track.artist}
+            </p>
+            
+            <div className="flex items-center justify-center gap-3 mt-1.5 mb-2">
               <p className="text-xs text-gray-500 truncate max-w-[150px]">{currentTrack.track.album || 'No Album'}</p>
               <button
                 onClick={onOpenBrowser}
@@ -96,6 +141,22 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ onOpenBrowser }) => {
                 New Station
               </button>
             </div>
+
+            {/* Last.fm Artist Info Expansion */}
+            {showBio && artistInfo?.bio && (
+              <div className="mt-4 p-4 bg-black/40 border border-white/5 rounded-xl text-left animate-in slide-in-from-top-2">
+                <div className="flex items-center gap-2 mb-2 overflow-x-auto no-scrollbar">
+                  {artistInfo.tags?.slice(0, 3).map((tag: string) => (
+                    <span key={tag} className="text-[9px] font-bold tracking-wider uppercase text-indigo-300 bg-indigo-500/20 px-2 py-0.5 rounded-md whitespace-nowrap">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-400 leading-relaxed line-clamp-4">
+                  {artistInfo.bio}
+                </p>
+              </div>
+            )}
           </>
         ) : hasSyncedTracks ? (
           /* Library is synced — show Browse Artists CTA */

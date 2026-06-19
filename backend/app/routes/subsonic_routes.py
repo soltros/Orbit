@@ -59,6 +59,23 @@ def trigger_buffer_tracks(track_ids, app):
 
 subsonic_bp = Blueprint('subsonic', __name__, url_prefix='/api/subsonic')
 
+@subsonic_bp.route('/cover/<track_id>')
+def stream_cover(track_id):
+    """Proxy the cover art from Navidrome."""
+    client = SubsonicClient(
+        base_url=current_app.config['SUBSONIC_URL'],
+        username=current_app.config['SUBSONIC_USER'],
+        password=current_app.config['SUBSONIC_PASS']
+    )
+    url = client.get_cover_art_url(track_id)
+    try:
+        req = requests.get(url, stream=True, timeout=10)
+        req.raise_for_status()
+        return Response(stream_with_context(req.iter_content(chunk_size=8192)), content_type=req.headers.get('Content-Type', 'image/jpeg'))
+    except Exception as e:
+        current_app.logger.error(f"Failed to fetch cover art for {track_id}: {str(e)}")
+        return "Not found", 404
+
 def get_subsonic_client():
     from flask import has_request_context
     url = user = password = None
