@@ -20,6 +20,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const [llmProvider, setLlmProvider] = useState<'openai' | 'anthropic'>('openai');
   const [apiKey, setApiKey] = useState('');
   const [lastFmKey, setLastFmKey] = useState('');
+  const [lastFmSecret, setLastFmSecret] = useState('');
   const [mode, setMode] = useState<'local' | 'llm'>('local');
 
   useEffect(() => {
@@ -65,6 +66,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     if (lastFmKey) {
       payload.LASTFM_API_KEY = lastFmKey;
     }
+    if (lastFmSecret) {
+      payload.LASTFM_API_SECRET = lastFmSecret;
+    }
 
     try {
       const res = await fetch('/api/setup/save', {
@@ -79,6 +83,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
         setPassword('');
         setApiKey('');
         setLastFmKey('');
+        setLastFmSecret('');
         // Update local config state
         setConfig({
           ...config,
@@ -86,7 +91,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
           LLM_PROVIDER: llmProvider,
           HAS_OPENAI_KEY: llmProvider === 'openai' && apiKey ? true : config.HAS_OPENAI_KEY,
           HAS_ANTHROPIC_KEY: llmProvider === 'anthropic' && apiKey ? true : config.HAS_ANTHROPIC_KEY,
-          HAS_LASTFM_KEY: lastFmKey ? true : config.HAS_LASTFM_KEY
+          HAS_LASTFM_KEY: lastFmKey ? true : config.HAS_LASTFM_KEY,
+          HAS_LASTFM_SECRET: lastFmSecret ? true : config.HAS_LASTFM_SECRET
         });
         
         // Reload page after a delay to apply backend config changes
@@ -261,6 +267,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                         value={lastFmKey}
                         onChange={e => setLastFmKey(e.target.value)}
                         placeholder={config?.HAS_LASTFM_KEY ? "••••••••" : "Leave blank if unused"}
+                        className="w-full px-3 py-2 bg-slate-950 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-400 mb-1 mt-4">
+                        Last.fm API Secret {config?.HAS_LASTFM_SECRET && '(Saved)'}
+                      </label>
+                      <input
+                        type="password"
+                        value={lastFmSecret}
+                        onChange={e => setLastFmSecret(e.target.value)}
+                        placeholder={config?.HAS_LASTFM_SECRET ? "••••••••" : "Leave blank if unused"}
                         className="w-full px-3 py-2 bg-slate-950 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500"
                       />
                     </div>

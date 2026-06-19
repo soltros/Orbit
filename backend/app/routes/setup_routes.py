@@ -34,7 +34,8 @@ def get_config():
         "LLM_PROVIDER": current_app.config.get('LLM_PROVIDER', 'openai'),
         "HAS_OPENAI_KEY": bool(current_app.config.get('OPENAI_API_KEY')),
         "HAS_ANTHROPIC_KEY": bool(current_app.config.get('ANTHROPIC_API_KEY')),
-        "HAS_LASTFM_KEY": bool(current_app.config.get('LASTFM_API_KEY'))
+        "HAS_LASTFM_KEY": bool(current_app.config.get('LASTFM_API_KEY')),
+        "HAS_LASTFM_SECRET": bool(current_app.config.get('LASTFM_API_SECRET'))
     })
 
 @setup_bp.route('/save', methods=['POST'])
@@ -90,7 +91,7 @@ def save_settings():
             
     # Update settings
     for key in ['SUBSONIC_URL', 'SUBSONIC_USER', 'SUBSONIC_PASS', 
-                'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'LASTFM_API_KEY', 'LLM_PROVIDER', 'RECOMMENDATION_MODE']:
+                'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'LASTFM_API_KEY', 'LASTFM_API_SECRET', 'LLM_PROVIDER', 'RECOMMENDATION_MODE']:
         if key in data:
             settings[key] = data[key]
             # Live-reload into current app config

@@ -36,6 +36,7 @@ class Config:
     OPENAI_API_KEY = _persistent.get("OPENAI_API_KEY") or os.environ.get("OPENAI_API_KEY")
     ANTHROPIC_API_KEY = _persistent.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_API_KEY")
     LASTFM_API_KEY = _persistent.get("LASTFM_API_KEY") or os.environ.get("LASTFM_API_KEY")
+    LASTFM_API_SECRET = _persistent.get("LASTFM_API_SECRET") or os.environ.get("LASTFM_API_SECRET")
     LLM_PROVIDER = _persistent.get("LLM_PROVIDER") or os.environ.get("LLM_PROVIDER", "openai")
 
     # Default recommendation engine mode ('llm' or 'local')

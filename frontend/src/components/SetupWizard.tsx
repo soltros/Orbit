@@ -18,6 +18,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
   const [llmProvider, setLlmProvider] = useState<'openai' | 'anthropic'>('openai');
   const [apiKey, setApiKey] = useState('');
   const [lastFmKey, setLastFmKey] = useState('');
+  const [lastFmSecret, setLastFmSecret] = useState('');
 
   const handleNext = (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,16 +35,14 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
       SUBSONIC_USER: username,
       SUBSONIC_PASS: password,
       RECOMMENDATION_MODE: mode,
-      LLM_PROVIDER: llmProvider
+      LLM_PROVIDER: llmProvider,
+      LASTFM_API_KEY: lastFmKey,
+      LASTFM_API_SECRET: lastFmSecret
     };
 
     if (mode === 'llm' && apiKey) {
       if (llmProvider === 'openai') payload.OPENAI_API_KEY = apiKey;
       else payload.ANTHROPIC_API_KEY = apiKey;
-    }
-
-    if (lastFmKey) {
-      payload.LASTFM_API_KEY = lastFmKey;
     }
 
     try {
@@ -215,20 +214,44 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
                 </div>
               )}
 
-              <div className="pt-4 border-t border-white/5 mt-4">
-                <h4 className="text-sm font-semibold text-gray-300 mb-2">Optional Integrations</h4>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <KeyRound className="h-5 w-5 text-gray-500" />
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-px bg-white/10"></div>
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Metadata Enrichment</span>
+                  <div className="flex-1 h-px bg-white/10"></div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-gray-400">Last.fm API Key <span className="text-gray-600 font-normal">(Optional)</span></label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Music className="h-4 w-4 text-gray-500 group-focus-within:text-indigo-400 transition" />
+                    </div>
+                    <input
+                      type="text"
+                      className="block w-full pl-10 pr-3 py-3 border border-white/10 rounded-xl bg-slate-800/50 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-slate-800 focus:border-transparent transition"
+                      placeholder="Enter your Last.fm API key..."
+                      value={lastFmKey}
+                      onChange={(e) => setLastFmKey(e.target.value)}
+                    />
                   </div>
-                  <input
-                    type="password"
-                    className="appearance-none rounded-xl relative block w-full px-3 py-3.5 pl-10 border border-white/10 bg-slate-950/50 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition duration-200"
-                    placeholder="Last.fm API Key (Optional)"
-                    value={lastFmKey}
-                    onChange={e => setLastFmKey(e.target.value)}
-                  />
-                  <p className="text-[10px] text-gray-400 mt-2 px-1">Enables rich artist bios, tags, and dynamic artist artwork.</p>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-gray-400">Last.fm API Secret <span className="text-gray-600 font-normal">(Optional)</span></label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Music className="h-4 w-4 text-gray-500 group-focus-within:text-indigo-400 transition" />
+                    </div>
+                    <input
+                      type="password"
+                      className="block w-full pl-10 pr-3 py-3 border border-white/10 rounded-xl bg-slate-800/50 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-slate-800 focus:border-transparent transition"
+                      placeholder="Enter your Last.fm Shared Secret..."
+                      value={lastFmSecret}
+                      onChange={(e) => setLastFmSecret(e.target.value)}
+                    />
+                  </div>
+                  <p className="text-[10px] text-gray-500 mt-1">Used to pull high-res album art and rich artist biographies from Last.fm.</p>
                 </div>
               </div>
             </div>
