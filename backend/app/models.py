@@ -18,6 +18,21 @@ class Genre(db.Model):
             "name": self.name
         }
 
+class ArtistCache(db.Model):
+    __tablename__ = 'artist_cache'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), unique=True, nullable=False, index=True) # lowercase artist name
+    image_url = db.Column(db.Text)
+    bio = db.Column(db.Text)
+    last_updated = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "image_url": self.image_url,
+            "bio": self.bio
+        }
+
 class Track(db.Model):
     __tablename__ = 'tracks'
     id = db.Column(db.String(64), primary_key=True) # Usually the Subsonic ID

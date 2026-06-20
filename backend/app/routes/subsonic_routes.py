@@ -281,3 +281,51 @@ def sync_status():
         "track_count": count
     }), 200
 
+@subsonic_bp.route('/artist-cover/<artist_name>', methods=['GET'])
+def get_artist_cover(artist_name):
+    from flask import redirect
+    from app.models import ArtistCache
+    from app.routes.lastfm_routes import fetch_and_cache_artist
+    
+    try:
+        # First try to get the real Artist picture from Last.fm cache
+        cached = ArtistCache.query.filter_by(name=artist_name.lower()).first()
+        
+        api_key = current_app.config.get('LASTFM_API_KEY')
+        api_secret = current_app.config.get('LASTFM_API_SECRET')
+        
+        image_url = None
+        if cached and cached.image_url:
+            image_url = cached.image_url
+        elif api_key:
+            # Fetch and cache it on the fly
+            info = fetch_and_cache_artist(artist_name, api_key, api_secret)
+            if info and info.get('image'):
+                image_url = info['image']
+                
+        if image_url:
+            return redirect(image_url)
+
+    except Exception as e:
+        current_app.logger.error(f"Error fetching lastfm artist cover: {str(e)}")
+
+    # Fallback: Retrieve the first track for this artist to use as their avatar
+    try:
+        from sqlalchemy import func
+        track = Track.query.filter(func.lower(Track.artist) == artist_name.lower()).first()
+        if not track:
+            return "Not found", 404
+            
+        client = SubsonicClient(
+            base_url=current_app.config.get('SUBSONIC_URL', ''),
+            username=current_app.config.get('SUBSONIC_USER', ''),
+            password=current_app.config.get('SUBSONIC_PASS', '')
+        )
+        url = client.get_cover_art_url(track.id, size=500)
+        req = requests.get(url, stream=True, timeout=10)
+        req.raise_for_status()
+        
+        return Response(stream_with_context(req.iter_content(chunk_size=1024)), content_type=req.headers.get('content-type', 'image/jpeg'))
+    except Exception as e:
+        current_app.logger.error(f"Error fetching fallback artist cover: {str(e)}")
+        return "Not found", 404

@@ -3,21 +3,10 @@ import requests
 import urllib.parse
 import hashlib
 from app import db
-from app.models import Track
+from app.models import Track, ArtistCache
 
-lastfm_bp = Blueprint('lastfm', __name__, url_prefix='/api/lastfm')
-
-@lastfm_bp.route('/artist', methods=['GET'])
-def get_artist_info():
-    artist_name = request.args.get('name')
-    if not artist_name:
-        return jsonify({"error": "Artist name is required"}), 400
-
-    api_key = current_app.config.get('LASTFM_API_KEY')
-    api_secret = current_app.config.get('LASTFM_API_SECRET')
-    if not api_key:
-        return jsonify({"error": "LastFM API key not configured"}), 404
-
+def fetch_and_cache_artist(artist_name, api_key, api_secret):
+    """Internal helper to fetch from LastFM and save to ArtistCache."""
     try:
         params = {
             'method': 'artist.getinfo',
@@ -39,32 +28,79 @@ def get_artist_info():
         data = response.json()
         
         if 'error' in data:
-            return jsonify({"error": data['message']}), 404
+            return None
             
         artist_data = data.get('artist', {})
         
-        # Last.fm provides a list of images. Get the largest one.
         images = artist_data.get('image', [])
         image_url = None
         for img in reversed(images):
             url = img.get('#text', '')
-            if url and '2a96cbd8b46e442fc41c2b86b821562f' not in url: # LastFM default star placeholder
+            if url and '2a96cbd8b46e442fc41c2b86b821562f' not in url:
                 image_url = url
                 break
                 
-        # Extract bio
         bio = artist_data.get('bio', {}).get('summary', '')
-        # Clean up lastfm html link
         if '<a href' in bio:
             bio = bio.split('<a href')[0].strip()
             
-        return jsonify({
+        # Update or create cache
+        artist_record = ArtistCache.query.filter_by(name=artist_name.lower()).first()
+        if not artist_record:
+            artist_record = ArtistCache(name=artist_name.lower())
+            db.session.add(artist_record)
+            
+        artist_record.image_url = image_url
+        artist_record.bio = bio
+        db.session.commit()
+        
+        return {
             "name": artist_data.get('name'),
             "image": image_url,
             "bio": bio,
             "tags": [t.get('name') for t in artist_data.get('tags', {}).get('tag', [])],
             "similar": [a.get('name') for a in artist_data.get('similar', {}).get('artist', [])]
-        })
+        }
+    except Exception as e:
+        print(f"Failed to fetch LastFM artist {artist_name}: {e}")
+        return None
+
+lastfm_bp = Blueprint('lastfm', __name__, url_prefix='/api/lastfm')
+
+@lastfm_bp.route('/artist', methods=['GET'])
+def get_artist_info():
+    artist_name = request.args.get('name')
+    if not artist_name:
+        return jsonify({"error": "Artist name is required"}), 400
+
+    api_key = current_app.config.get('LASTFM_API_KEY')
+    api_secret = current_app.config.get('LASTFM_API_SECRET')
+    if not api_key:
+        return jsonify({"error": "LastFM API key not configured"}), 404
+
+    try:
+        # Check cache first
+        cached = ArtistCache.query.filter_by(name=artist_name.lower()).first()
+        
+        # If not cached, or missing image, fetch it
+        artist_info = None
+        if not cached or not cached.image_url:
+            artist_info = fetch_and_cache_artist(artist_name, api_key, api_secret)
+        
+        if artist_info:
+            return jsonify(artist_info)
+            
+        # Return cached even if partial
+        if cached:
+            return jsonify({
+                "name": cached.name.title(),
+                "image": cached.image_url,
+                "bio": cached.bio,
+                "tags": [],
+                "similar": []
+            })
+            
+        return jsonify({"error": "Artist not found on Last.fm"}), 404
         
     except Exception as e:
         current_app.logger.error(f"LastFM API error: {str(e)}")
