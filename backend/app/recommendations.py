@@ -4,6 +4,21 @@ from datetime import datetime, timedelta
 from app import db
 from app.models import Track, Genre, InteractionHistory, UserProfile
 from app.listenbrainz import get_similar_artists
+import re
+
+def normalize_title(title):
+    """Normalize a track title to easily match variations (live, remastered, etc.)"""
+    if not title: return ""
+    # Remove text inside parentheses or brackets
+    t = re.sub(r'\(.*?\)', '', title)
+    t = re.sub(r'\[.*?\]', '', t)
+    # Remove trailing hyphenated qualifiers (e.g. " - Remastered", " - Live version")
+    t = re.sub(r'-.*?(remaster|live|acoustic|edit|version|radio|mix).*', '', t, flags=re.IGNORECASE)
+    # Remove non-alphanumeric characters except spaces
+    t = re.sub(r'[^\w\s]', '', t)
+    # Normalize whitespace and lowercase
+    t = re.sub(r'\s+', ' ', t)
+    return t.strip().lower()
 
 def calculate_cosine_similarity(v1, v2):
     """Computes the cosine similarity between two numeric embedding vectors."""
@@ -57,8 +72,18 @@ def get_hybrid_recommendations(user, count=5):
     # Exclude seed track itself
     exclude_ids.add(seed_track.id)
     
-    # Select candidate pool
-    candidates = Track.query.filter(~Track.id.in_(exclude_ids) if exclude_ids else True).limit(200).all()
+    # Build a set of normalized titles to avoid playing variations of recently played songs
+    exclude_titles = set()
+    exclude_titles.add(normalize_title(seed_track.title))
+    
+    # Fetch track titles for history to exclude their variations
+    if exclude_ids:
+        hist_tracks = Track.query.filter(Track.id.in_(exclude_ids)).all()
+        for t in hist_tracks:
+            exclude_titles.add(normalize_title(t.title))
+    
+    # Select candidate pool (do not filter titles in SQL, do it in python logic)
+    candidates = Track.query.filter(~Track.id.in_(exclude_ids) if exclude_ids else True).limit(500).all()
     if not candidates:
         return []
 
@@ -144,9 +169,10 @@ def get_hybrid_recommendations(user, count=5):
     # Sort by score descending
     scored_candidates.sort(key=lambda x: x["score"], reverse=True)
     
-    # Enforce Artist Diversity: Try to pick at most 1 track per artist per batch
+    # Enforce Artist and Title Diversity
     final_picks = []
     seen_artists = set()
+    seen_titles = set(exclude_titles) # Seed with recently played titles
     
     # Track the seed artist so we don't spam them
     if seed_track:
@@ -158,12 +184,27 @@ def get_hybrid_recommendations(user, count=5):
             
         track = Track.query.get(cand["track_id"])
         artist_lower = track.artist.lower()
+        norm_title = normalize_title(track.title)
         
-        if artist_lower not in seen_artists:
+        # Check title uniqueness (prevents variations) and artist uniqueness
+        if norm_title not in seen_titles and artist_lower not in seen_artists:
             seen_artists.add(artist_lower)
+            seen_titles.add(norm_title)
             final_picks.append(cand)
             
-    # If we couldn't find enough unique artists, fill the rest with whatever is left
+    # Fallbacks if we can't find strictly unique artists AND unique titles
+    if len(final_picks) < count:
+        for cand in scored_candidates:
+            track = Track.query.get(cand["track_id"])
+            norm_title = normalize_title(track.title)
+            # Prioritize unique titles even if we have to reuse an artist
+            if cand not in final_picks and norm_title not in seen_titles:
+                seen_titles.add(norm_title)
+                final_picks.append(cand)
+                if len(final_picks) >= count:
+                    break
+                    
+    # Ultimate fallback: just fill to count
     if len(final_picks) < count:
         for cand in scored_candidates:
             if cand not in final_picks:
