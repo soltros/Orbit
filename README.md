@@ -4,15 +4,15 @@
   <img src="frontend/public/icon.svg" width="150" alt="Orbit Logo" />
 </p>
 
-<p align="center">
-  <img src="screenshots/screenshot_playback.png" width="30%" alt="Playback Screen" />
-  <img src="screenshots/screenshot-seed-station.png" width="30%" alt="Seed Station Screen" />
-  <img src="screenshots/screenshot_syncing.png" width="30%" alt="Syncing Screen" />
-</p>
+
 
 Orbit is a self-hosted client and recommendation server for Subsonic/Navidrome music libraries. It maintains a continuous rolling queue of upcoming tracks by blending listening history, skips, and user feedback through either local acoustic analysis or cloud-based LLM APIs.
 
 The frontend is a mobile-friendly Progressive Web App (PWA) with lock-screen integration, background audio pre-fetching, and real-time station diagnostics.
+
+<p align="center">
+  <img src="screenshots/screenshot_playback.png" width="350" alt="Orbit Main Player View" />
+</p>
 
 ---
 
@@ -40,6 +40,11 @@ graph TD
 ## Features
 
 ### 1. Dual Recommendation Modes
+
+<p align="center">
+  <img src="screenshots/screenshot-seed-station.png" width="350" alt="Orbit Seed Station and Discovery Hub" />
+</p>
+
 You can toggle between two curating backends inside the client interface:
 - **Cloud AI DJ (LLM-Driven)**: Generates a natural language music profile based on your history. It passes candidate metadata pools to OpenAI (`gpt-4o-mini`) or Anthropic (`claude-3-5-haiku`) to return the next 5 tracks along with a personalized sentence explaining why each was chosen.
 - **Local Engine (Hybrid Math)**: Runs completely self-hosted with zero API cost. It grades candidates using a weighted scoring model:
@@ -56,6 +61,10 @@ You can toggle between two curating backends inside the client interface:
 - **Smart Image Caching & Fail-Fast Rendering**: Orbit dynamically requests, routes, and locally caches Last.fm high-quality artist photos to a persistent SQLite cache. Image fetching utilizes a fail-fast timeout strategy to completely protect the primary application connection pool from thread starvation during upstream outages.
 - **Strict Station Diversity**: The station engine runs a diversity normalization pass to automatically detect and discard duplicated variations of tracks (e.g., Live, Remastered, Acoustic), while guaranteeing absolute variety by preventing the same artist from appearing multiple times in the queue.
 - **UI State Protection**: During critical library ingestion phases, the frontend replaces the player with a live "Syncing your Universe" lock screen, entirely preventing desynced queue generation or invalid playback commands until the library catalog is fully indexed.
+
+<p align="center">
+  <img src="screenshots/screenshot_syncing.png" width="350" alt="Orbit Syncing Lock Screen" />
+</p>
 
 ### 3. Administration & Security
 - **In-App Database Management**: Effortlessly click-to-export and click-to-import full backups of the `orbit.db` SQLite database straight from the UI Settings modal.
