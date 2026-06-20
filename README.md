@@ -14,9 +14,8 @@ The frontend is a mobile-friendly Progressive Web App (PWA) with lock-screen int
 
 ```mermaid
 graph TD
-    Client[PWA Frontend / Browser] -->|HTTP / Audio Stream| Proxy[Traefik Reverse Proxy]
-    Proxy -->|/api/* or /rest/*| Backend[Flask API Server]
-    Proxy -->|/*| Frontend[Nginx static server]
+    Client[PWA Frontend / Browser] -->|HTTP / Audio Stream| Frontend[Nginx static server]
+    Frontend -->|/api/* or /rest/*| Backend[Flask API Server]
     Backend -->|SQLAlchemy| DB[(SQLite Database)]
     Backend -->|MD5 Auth Proxy| Navidrome[Navidrome / Subsonic Server]
     Worker[Audio Worker Container] -->|Read/Write| DB
@@ -26,10 +25,9 @@ graph TD
 ```
 
 ### Components
-1. **`orbit-traefik`**: Routes traffic based on path prefixes (`/api` and `/rest` go to the Flask backend, others go to the static Nginx server serving the React app).
-2. **`orbit-frontend`**: React, TypeScript, and Vite built static bundle served via Nginx. It manages audio playback using the browser's HTML5 Audio API, handles lock-screen controls via the Media Session API, and handles track pre-fetching.
-3. **`orbit-backend`**: Flask server executing the API factory pattern. It proxies audio streams, acts as a credential shield, manages the SQLite database, and handles query scheduling.
-4. **`orbit-worker`**: Background worker running a loop to analyze raw audio files. It uses CPU-limited thread operations to generate vector embeddings.
+1. **`orbit-frontend`**: React, TypeScript, and Vite built static bundle served via Nginx. It manages audio playback using the browser's HTML5 Audio API, handles lock-screen controls via the Media Session API, and handles track pre-fetching. It also acts as the primary reverse proxy, forwarding `/api` and `/rest` requests to the backend.
+2. **`orbit-backend`**: Flask server executing the API factory pattern. It proxies audio streams, acts as a credential shield, manages the SQLite database, and handles query scheduling.
+3. **`orbit-worker`**: Background worker running a loop to analyze raw audio files. It uses CPU-limited thread operations to generate vector embeddings.
 
 ---
 
@@ -198,28 +196,9 @@ This saves an `upbeat_house_playlist.nsp` JSON file directly to `/music`, where 
 
 Orbit is optimized for secure access across mesh networks without exposing your server directly to the public internet.
 
-### Option A: Using Mesh DNS Domains (Tailscale MagicDNS, Netbird DNS)
-If your mesh provider supports automatic DNS names:
-1. Ensure the VPN client is running on both the Orbit host and your client device.
-2. Edit your `.env` configuration file to use your server's mesh domain name:
-   ```env
-   DOMAIN_NAME=your-server.mesh-domain-name.ts.net
-   ```
-3. Restart Orbit (`docker compose down && docker compose up -d`). Traefik will automatically handle routing on that hostname.
+The `orbit-frontend` Nginx container binds directly to host port `80`. It is pre-configured to proxy `/api` and `/rest` paths internally to the backend. 
 
-### Option B: Direct IP Routing (ZeroTier, Nebula, etc.)
-If your mesh network does not resolve custom DNS hosts and you wish to access Orbit directly via the server's private mesh IP address (e.g. `10.147.17.15`), you can bypass the Traefik reverse proxy entirely:
-1. Open `docker-compose.yml` and comment out or remove the `traefik` service ports mappings (lines 17-20) to free up port 80.
-2. Scroll to the `frontend` container service section and uncomment the ports block:
-   ```yaml
-   ports:
-     - "80:80"
-   ```
-3. Launch your containers:
-   ```bash
-   docker compose up -d --build
-   ```
-4. The Nginx frontend container is now bound directly to host port 80. It is pre-configured in [nginx.conf](file:///home/derrik/Documents/GitHub/Orbit/frontend/nginx.conf) to proxy `/api` and `/rest` paths internally. You can now access Orbit from any connected mesh device using the server's raw mesh IP address.
+Because we use pure, raw IP mapping instead of complex DNS routing proxies, you can instantly access Orbit from any connected mesh device using your server's raw mesh IP address (e.g., `http://10.147.17.15`) without any extra configuration.
 
 ---
 

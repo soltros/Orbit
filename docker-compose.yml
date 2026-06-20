@@ -1,10 +1,9 @@
 # Orbit Docker Compose Orchestration Config
 #
-# This file spins up the 4 core containers needed for Orbit:
-# 1. Reverse Proxy (Traefik) - handles routing and local domains
-# 2. Flask API Server (backend) - handles database, subsonic calls, and LLMs
-# 3. Acoustic Worker (worker) - runs Librosa analyses on audio files
-# 4. static Web Server (frontend) - hosts the React PWA interface
+# This file spins up the 3 core containers needed for Orbit:
+# 1. Flask API Server (backend) - handles database, subsonic calls, and LLMs
+# 2. Acoustic Worker (worker) - runs Librosa analyses on audio files
+# 3. Static Web Server (frontend) - hosts the React PWA interface and proxies API calls
 #
 # To launch:
 #   1. Copy .env.example to .env and configure your subsonic credentials/volume paths.
@@ -13,31 +12,6 @@
 version: '3.8'
 
 services:
-  # ==========================================
-  # REVERSE PROXY (TRAEFIK)
-  # ==========================================
-  # Traefik acts as the entrypoint for all incoming HTTP requests.
-  # It automatically routes path prefixes like /api and /rest to the backend,
-  # and all other hostname requests to the React frontend.
-  traefik:
-    image: traefik:v2.10
-    container_name: orbit-traefik
-    command:
-      - "--api.insecure=true"                   # Exposes the Traefik dashboard
-      - "--providers.docker=true"                # Enables automatic container detection
-      - "--providers.docker.exposedbydefault=false" # Only expose containers with explicit traefik.enable labels
-      - "--entrypoints.web.address=:80"          # Defines port 80 entrypoint (HTTP)
-      - "--entrypoints.websecure.address=:443"   # Defines port 443 entrypoint (HTTPS)
-    ports:
-      - "80:80"                                  # Bind standard HTTP port to host
-      - "443:443"                                # Bind standard HTTPS port to host
-      - "8080:8080"                              # Traefik Dashboard (Access via http://localhost:8080)
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro # Connects Traefik to host's Docker socket (read-only)
-    networks:
-      - orbit-network
-    restart: unless-stopped
-
   # ==========================================
   # API BACKEND (FLASK & SQLALCHEMY)
   # ==========================================
@@ -71,16 +45,10 @@ services:
       - db-data:/app/data                        # Persistent SQLite storage
     networks:
       - orbit-network
-    labels:
-      - "traefik.enable=true"
-      # Route requests matching orbit.localhost/api/* and orbit.localhost/rest/* to backend
-      - "traefik.http.routers.backend.rule=Host(`${DOMAIN_NAME:-orbit.localhost}`) && (PathPrefix(`/api`) || PathPrefix(`/rest`))"
-      - "traefik.http.routers.backend.entrypoints=web"
-      - "traefik.http.services.backend.loadbalancer.server.port=5000" # Backend container port
     restart: unless-stopped
 
   # ==========================================
-  # ACOUSTIC worker (LIBROSA BACKGROUND PROCESS)
+  # ACOUSTIC WORKER (LIBROSA BACKGROUND PROCESS)
   # ==========================================
   # A separate background thread task worker. Reuses the backend build image.
   # It sequentially reads raw audio files, extracts acoustic metrics (BPM, Key, Energy, Timbre),
@@ -108,26 +76,16 @@ services:
   # PWA FRONTEND (STATIC NGINX CONTAINER)
   # ==========================================
   # Hosts the React TS web application. Nginx serves client bundles.
-  # Contains pre-fetching buffers and lockscreen Media Session API listeners.
+  # Also acts as the primary entrypoint, proxying /api and /rest to the backend.
   frontend:
     build:
       context: ./frontend                        # Build using the multi-stage Dockerfile inside /frontend
       dockerfile: Dockerfile
     container_name: orbit-frontend
-    # Mesh Network Direct Access (ZeroTier, Netbird, Nebula, etc.):
-    # If you want to bypass Traefik and access Orbit directly using your server's mesh IP:
-    #   1. Disable Traefik's port mappings (or comment out the entire Traefik service).
-    #   2. Uncomment the ports block below to bind Nginx directly to your host's port 80.
-    # ports:
-    #   - "80:80"
+    ports:
+      - "80:80"                                  # Bind Nginx directly to host port 80
     networks:
       - orbit-network
-    labels:
-      - "traefik.enable=true"
-      # Route all other domains traffic (e.g. root domain http://orbit.localhost) to frontend
-      - "traefik.http.routers.frontend.rule=Host(`${DOMAIN_NAME:-orbit.localhost}`)"
-      - "traefik.http.routers.frontend.entrypoints=web"
-      - "traefik.http.services.frontend.loadbalancer.server.port=80" # Nginx container port
     restart: unless-stopped
 
 # Persistent storage allocations
