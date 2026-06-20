@@ -1,28 +1,92 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <linearGradient id="orbit-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#818cf8" />
-      <stop offset="100%" stop-color="#4f46e5" />
+    <!-- Background Gradient -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#110d26" />
+      <stop offset="50%" stop-color="#0a0a12" />
+      <stop offset="100%" stop-color="#030305" />
     </linearGradient>
-    <radialGradient id="bg-grad" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#1e1b4b" />
-      <stop offset="100%" stop-color="#0a0a0f" />
+
+    <!-- Inner Glow for Squircle -->
+    <linearGradient id="border-glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4f46e5" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0.05" />
+    </linearGradient>
+
+    <!-- Center Planet/Record Label Gradient -->
+    <linearGradient id="center" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a78bfa" />
+      <stop offset="50%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#3730a3" />
+    </linearGradient>
+
+    <!-- Groove Gradients -->
+    <linearGradient id="groove-glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#4f46e5" stop-opacity="0.2" />
+    </linearGradient>
+
+    <!-- Deep Vinyl Body Gradient -->
+    <radialGradient id="vinyl-body" cx="50%" cy="50%" r="50%">
+      <stop offset="70%" stop-color="#0a0a12" />
+      <stop offset="100%" stop-color="#030305" />
     </radialGradient>
+
+    <!-- Drop Shadow for the Vinyl -->
+    <filter id="vinyl-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="15" stdDeviation="20" flood-color="#000" flood-opacity="0.9"/>
+    </filter>
+
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
   </defs>
-  <!-- Background -->
-  <rect width="512" height="512" rx="128" fill="url(#bg-grad)" />
-  
-  <!-- Outer Orbit Rings -->
-  <circle cx="256" cy="256" r="160" fill="none" stroke="#4338ca" stroke-width="6" stroke-dasharray="12 8" opacity="0.6" />
-  <circle cx="256" cy="256" r="120" fill="none" stroke="#6366f1" stroke-width="4" stroke-dasharray="6 6" opacity="0.8" />
-  <circle cx="256" cy="256" r="80" fill="none" stroke="#818cf8" stroke-width="2" opacity="0.9" />
 
-  <!-- Orbiting Planets/Nodes -->
-  <circle cx="136" cy="256" r="16" fill="#818cf8" />
-  <circle cx="256" cy="136" r="12" fill="#c084fc" />
-  <circle cx="340" cy="312" r="10" fill="#a78bfa" />
+  <!-- Background Squircle -->
+  <rect width="512" height="512" rx="120" fill="url(#bg)" />
+  <!-- Inner glowing border for glassmorphism effect -->
+  <rect x="2" y="2" width="508" height="508" rx="118" fill="none" stroke="url(#border-glow)" stroke-width="4"/>
 
-  <!-- Center Star/Planet -->
-  <circle cx="256" cy="256" r="48" fill="url(#orbit-grad)" />
-  <circle cx="256" cy="256" r="40" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.5" />
+  <!-- Orbit Rings (Vinyl Grooves) -->
+  <g transform="translate(256, 256)">
+    
+    <!-- The Vinyl Record Base -->
+    <circle cx="0" cy="0" r="180" fill="url(#vinyl-body)" filter="url(#vinyl-shadow)"/>
+    <circle cx="0" cy="0" r="180" fill="none" stroke="#1e1b4b" stroke-width="2"/>
+
+    <!-- Grooves -->
+    <circle cx="0" cy="0" r="160" fill="none" stroke="url(#groove-glow)" stroke-width="2" opacity="0.6" />
+    <circle cx="0" cy="0" r="140" fill="none" stroke="#6366f1" stroke-width="1.5" opacity="0.4" stroke-dasharray="12 8" />
+    <circle cx="0" cy="0" r="120" fill="none" stroke="url(#groove-glow)" stroke-width="3" opacity="0.8" />
+    <circle cx="0" cy="0" r="100" fill="none" stroke="#8b5cf6" stroke-width="1" opacity="0.5" />
+    <circle cx="0" cy="0" r="80" fill="none" stroke="url(#groove-glow)" stroke-width="2" opacity="0.9" stroke-dasharray="4 4" />
+    
+    <!-- Planets (Moons orbiting the grooves) -->
+    <g transform="rotate(45) translate(160, 0)">
+      <circle cx="0" cy="0" r="8" fill="#c084fc" filter="url(#glow)" />
+    </g>
+    
+    <g transform="rotate(-110) translate(120, 0)">
+      <circle cx="0" cy="0" r="12" fill="#818cf8" filter="url(#glow)" />
+      <!-- Planetary rings for the moon -->
+      <ellipse cx="0" cy="0" rx="22" ry="8" fill="none" stroke="#a78bfa" stroke-width="1.5" opacity="0.9" transform="rotate(25)" />
+      <ellipse cx="0" cy="0" rx="26" ry="10" fill="none" stroke="#6366f1" stroke-width="1" opacity="0.5" transform="rotate(25)" />
+    </g>
+
+    <g transform="rotate(160) translate(80, 0)">
+      <circle cx="0" cy="0" r="6" fill="#a78bfa" filter="url(#glow)" />
+    </g>
+    
+    <!-- Record Label / Core Planet -->
+    <circle cx="0" cy="0" r="48" fill="url(#center)" filter="url(#glow)"/>
+    <!-- Inner Spindle hole -->
+    <circle cx="0" cy="0" r="8" fill="#030305" />
+    <!-- Inner ring detail -->
+    <circle cx="0" cy="0" r="14" fill="none" stroke="#110d26" stroke-width="2" />
+    <circle cx="0" cy="0" r="20" fill="none" stroke="#ffffff" stroke-width="1" opacity="0.2" stroke-dasharray="2 4" />
+  </g>
 </svg>
