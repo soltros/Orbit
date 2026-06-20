@@ -14,13 +14,20 @@ def login():
         return jsonify({"status": "error", "message": "Username, password, and URL are required."}), 400
 
     try:
-        # Try to ping Subsonic server with these credentials
-        client = SubsonicClient(
-            base_url=url,
-            username=username,
-            password=password
-        )
-        client.ping()
+        # Check for initial setup admin credentials
+        is_setup_admin = False
+        if not current_app.config.get('SETUP_COMPLETED'):
+            if username == 'admin' and password == 'admin123':
+                is_setup_admin = True
+                
+        if not is_setup_admin:
+            # Try to ping Subsonic server with these credentials
+            client = SubsonicClient(
+                base_url=url,
+                username=username,
+                password=password
+            )
+            client.ping()
 
         # If successful, save to session
         session.permanent = True
@@ -47,10 +54,11 @@ def get_current_user():
     user = session.get('subsonic_user')
     admin_user = current_app.config.get('SUBSONIC_USER')
     if user:
+        is_setup_admin = not current_app.config.get('SETUP_COMPLETED') and user == 'admin'
         return jsonify({
             "status": "success", 
             "user": user,
             "url": session.get('subsonic_url'),
-            "is_admin": user == admin_user
+            "is_admin": is_setup_admin or user == admin_user
         }), 200
     return jsonify({"status": "error", "message": "Not authenticated."}), 401

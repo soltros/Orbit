@@ -16,7 +16,9 @@ def get_settings_path():
 def setup_status():
     """Checks if Orbit needs initial configuration."""
     if not current_app.config.get('SETUP_COMPLETED'):
-        return jsonify({"needs_setup": True})
+        user = session.get('subsonic_user')
+        if user == 'admin':
+            return jsonify({"needs_setup": True})
         
     return jsonify({"needs_setup": False})
 

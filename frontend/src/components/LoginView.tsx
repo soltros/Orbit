@@ -73,6 +73,9 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
           <p className="mt-2 text-sm text-gray-400">
             Log in with your Subsonic or Navidrome server credentials.
           </p>
+          <p className="mt-4 text-xs text-indigo-400/80 bg-indigo-500/10 py-2 px-3 rounded-lg inline-block border border-indigo-500/20">
+            <strong>First time setup?</strong> Log in as <code className="text-white">admin</code> / <code className="text-white">admin123</code> with any URL to configure.
+          </p>
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleLogin}>
