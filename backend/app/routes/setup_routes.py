@@ -1,6 +1,7 @@
 import os
 import json
-from flask import Blueprint, current_app, jsonify, request, session
+import shutil
+from flask import Blueprint, current_app, jsonify, request, session, send_file
 from app import db
 from app.models import Track, QueueItem, InteractionHistory
 from app.subsonic import SubsonicClient
@@ -128,3 +129,43 @@ def get_users():
     except Exception as e:
         current_app.logger.error(f"Error fetching users: {str(e)}")
         return jsonify({"status": "error", "message": "Failed to fetch users."}), 500
+
+@setup_bp.route('/export-db', methods=['GET'])
+def export_db():
+    """Exports the SQLite database file."""
+    user = session.get('subsonic_user')
+    if user != current_app.config.get('SUBSONIC_USER'):
+        return jsonify({"status": "error", "message": "Unauthorized. Admin access required."}), 403
+
+    db_path = current_app.config.get("DATABASE_PATH", "/app/data/orbit.db")
+    if not os.path.exists(db_path):
+        return jsonify({"status": "error", "message": "Database file not found."}), 404
+
+    return send_file(db_path, as_attachment=True, download_name="orbit_backup.db")
+
+@setup_bp.route('/import-db', methods=['POST'])
+def import_db():
+    """Imports and overwrites the SQLite database file."""
+    user = session.get('subsonic_user')
+    if user != current_app.config.get('SUBSONIC_USER'):
+        return jsonify({"status": "error", "message": "Unauthorized. Admin access required."}), 403
+
+    if 'db_file' not in request.files:
+        return jsonify({"status": "error", "message": "No file provided."}), 400
+
+    file = request.files['db_file']
+    if file.filename == '':
+        return jsonify({"status": "error", "message": "Empty file provided."}), 400
+
+    db_path = current_app.config.get("DATABASE_PATH", "/app/data/orbit.db")
+    
+    try:
+        # Create a backup of the current db just in case
+        if os.path.exists(db_path):
+            shutil.copy2(db_path, f"{db_path}.bak")
+            
+        file.save(db_path)
+        return jsonify({"status": "success", "message": "Database imported successfully! Please restart Orbit to apply changes."}), 200
+    except Exception as e:
+        current_app.logger.error(f"Error importing database: {str(e)}")
+        return jsonify({"status": "error", "message": "Failed to import database."}), 500

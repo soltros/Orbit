@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Server, KeyRound, Save, Loader2, Sparkles, HardDrive, Download, Upload, Shield, RefreshCw } from 'lucide-react';
 
 interface SettingsModalProps {
@@ -8,6 +8,7 @@ interface SettingsModalProps {
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState<'general' | 'api' | 'data' | 'users'>('general');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [config, setConfig] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -131,6 +132,37 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
       }
     } catch (err) {
       setMessage({ type: 'error', text: 'Network error resetting analysis.' });
+    }
+  };
+
+  const handleExportDb = () => {
+    window.location.href = '/api/setup/export-db';
+  };
+
+  const handleImportDb = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('db_file', file);
+
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/setup/import-db', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if (res.ok && data.status === 'success') {
+        setMessage({ type: 'success', text: data.message });
+      } else {
+        setMessage({ type: 'error', text: data.message || 'Failed to import database.' });
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Network error importing database.' });
+    } finally {
+      setIsLoading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -320,17 +352,30 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   <p className="text-xs text-gray-400 mb-6">Orbit stores acoustic features, cached lists, and your playback history in a local SQLite database.</p>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <button className="flex flex-col items-center justify-center gap-2 p-6 bg-white/5 border border-white/10 hover:border-indigo-500/50 hover:bg-indigo-500/10 rounded-xl transition cursor-not-allowed opacity-50">
+                    <button 
+                      onClick={handleExportDb}
+                      className="flex flex-col items-center justify-center gap-2 p-6 bg-white/5 border border-white/10 hover:border-indigo-500/50 hover:bg-indigo-500/10 rounded-xl transition"
+                    >
                       <Download className="w-6 h-6 text-indigo-400" />
                       <span className="text-sm font-bold text-white">Export Database</span>
-                      <span className="text-[10px] text-gray-500 text-center">Download orbit.db for safekeeping (Coming soon)</span>
+                      <span className="text-[10px] text-gray-400 text-center">Download orbit.db for safekeeping</span>
                     </button>
                     
-                    <button className="flex flex-col items-center justify-center gap-2 p-6 bg-white/5 border border-white/10 hover:border-violet-500/50 hover:bg-violet-500/10 rounded-xl transition cursor-not-allowed opacity-50">
+                    <button 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex flex-col items-center justify-center gap-2 p-6 bg-white/5 border border-white/10 hover:border-violet-500/50 hover:bg-violet-500/10 rounded-xl transition"
+                    >
                       <Upload className="w-6 h-6 text-violet-400" />
                       <span className="text-sm font-bold text-white">Import Database</span>
-                      <span className="text-[10px] text-gray-500 text-center">Restore from a previous backup (Coming soon)</span>
+                      <span className="text-[10px] text-gray-400 text-center">Restore from a previous backup</span>
                     </button>
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      className="hidden" 
+                      accept=".db,.sqlite,.sqlite3" 
+                      onChange={handleImportDb} 
+                    />
 
                     <button 
                       onClick={handleResetFailedAnalysis}
