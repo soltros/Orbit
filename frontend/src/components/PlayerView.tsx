@@ -181,9 +181,9 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ onOpenBrowser }) => {
                     </span>
                   ))}
                 </div>
-                <p className="text-xs text-gray-400 leading-relaxed line-clamp-4">
-                  {artistInfo.bio}
-                </p>
+                <div className="text-xs text-gray-400 leading-relaxed overflow-y-auto max-h-32 pr-2 no-scrollbar">
+                  <p>{artistInfo.bio}</p>
+                </div>
               </div>
             )}
           </>
