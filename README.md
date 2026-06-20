@@ -1,5 +1,9 @@
 # Orbit 🪐
 
+<p align="center">
+  <img src="frontend/public/icon.svg" width="150" alt="Orbit Logo" />
+</p>
+
 Orbit is a self-hosted client and recommendation server for Subsonic/Navidrome music libraries. It maintains a continuous rolling queue of upcoming tracks by blending listening history, skips, and user feedback through either local acoustic analysis or cloud-based LLM APIs.
 
 The frontend is a mobile-friendly Progressive Web App (PWA) with lock-screen integration, background audio pre-fetching, and real-time station diagnostics.
@@ -45,7 +49,9 @@ You can toggle between two curating backends inside the client interface:
 - **Lock-Screen Media Controls**: Integrates the browser Media Session API, enabling lock-screen play, pause, seek, and next-track controls on iOS and Android devices.
 - **Look-Ahead Pre-fetching**: Detects when track progress reaches 80%, then silently loads the next song in the queue into a separate browser background buffer, achieving gapless playback.
 - **Security credential shield**: The frontend only communicates with Orbit. The backend securely performs MD5 salts and hashes on your Navidrome credentials, proxying the stream so your raw subsonic passwords are never exposed to the browser.
-- **Smart Image Caching**: Orbit dynamically requests, routes, and locally caches Last.fm high-quality artist photos for the player and artist browser, while simultaneously disk-caching Subsonic album art to ensure lightning-fast UI load times and minimal upstream load.
+- **Smart Image Caching & Fail-Fast Rendering**: Orbit dynamically requests, routes, and locally caches Last.fm high-quality artist photos to a persistent SQLite cache. Image fetching utilizes a fail-fast timeout strategy to completely protect the primary application connection pool from thread starvation during upstream outages.
+- **Strict Station Diversity**: The station engine runs a diversity normalization pass to automatically detect and discard duplicated variations of tracks (e.g., Live, Remastered, Acoustic), while guaranteeing absolute variety by preventing the same artist from appearing multiple times in the queue.
+- **UI State Protection**: During critical library ingestion phases, the frontend replaces the player with a live "Syncing your Universe" lock screen, entirely preventing desynced queue generation or invalid playback commands until the library catalog is fully indexed.
 
 ### 3. Administration & Security
 - **In-App Database Management**: Effortlessly click-to-export and click-to-import full backups of the `orbit.db` SQLite database straight from the UI Settings modal.
