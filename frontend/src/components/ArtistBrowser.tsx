@@ -294,9 +294,9 @@ export const ArtistBrowser: React.FC<ArtistBrowserProps> = ({ onClose }) => {
 
                           {/* Artist Image & Name */}
                             <div className="w-10 h-10 flex-shrink-0 rounded-full bg-slate-800 flex items-center justify-center border border-indigo-500/20 group-hover:border-indigo-500/50 transition overflow-hidden shadow-lg">
-                              {artist.sample_track_id ? (
+                              {artist.name ? (
                                 <img 
-                                  src={`/api/subsonic/cover/${artist.sample_track_id}`} 
+                                  src={`/api/subsonic/artist-cover/${encodeURIComponent(artist.name)}`} 
                                   alt={artist.name} 
                                   className="w-full h-full object-cover"
                                   onError={(e) => {
