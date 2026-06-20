@@ -34,6 +34,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ onOpenBrowser }) => {
   React.useEffect(() => {
     if (!currentTrack) {
       setArtistInfo(null);
+      setTrackInfo(null);
       setShowBio(false);
       return;
     }

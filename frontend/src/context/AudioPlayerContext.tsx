@@ -155,7 +155,12 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   // Update Media Session controls
   useEffect(() => {
-    if (!currentTrack || !('mediaSession' in navigator)) return;
+    if (!('mediaSession' in navigator)) return;
+
+    if (!currentTrack) {
+      navigator.mediaSession.metadata = null;
+      return;
+    }
 
     navigator.mediaSession.metadata = new MediaMetadata({
       title: currentTrack.track.title,
@@ -601,9 +606,12 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       setCurrentTrack(null);
       setIsPlaying(false);
       setUpcomingQueue([]);
+      setProgress(0);
+      setDuration(0);
       if (audioRef.current) {
         audioRef.current.pause();
-        audioRef.current.src = '';
+        audioRef.current.removeAttribute('src');
+        audioRef.current.load();
       }
     } catch (err) {
       console.error("Failed to clear queue:", err);
