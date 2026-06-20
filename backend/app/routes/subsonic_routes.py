@@ -329,16 +329,9 @@ def get_artist_cover(artist_name):
         if not track:
             return "Not found", 404
             
-        client = SubsonicClient(
-            base_url=current_app.config.get('SUBSONIC_URL', ''),
-            username=current_app.config.get('SUBSONIC_USER', ''),
-            password=current_app.config.get('SUBSONIC_PASS', '')
-        )
-        url = client.get_cover_art_url(track.id, size=500)
-        req = requests.get(url, stream=True, timeout=10)
-        req.raise_for_status()
+        # Redirect to our internal cached cover endpoint instead of refetching
+        return redirect(f"/api/subsonic/cover/{track.id}")
         
-        return Response(stream_with_context(req.iter_content(chunk_size=1024)), content_type=req.headers.get('content-type', 'image/jpeg'))
     except Exception as e:
         current_app.logger.error(f"Error fetching fallback artist cover: {str(e)}")
         return "Not found", 404

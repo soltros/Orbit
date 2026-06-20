@@ -298,6 +298,7 @@ export const ArtistBrowser: React.FC<ArtistBrowserProps> = ({ onClose }) => {
                                 <img 
                                   src={`/api/subsonic/artist-cover/${encodeURIComponent(artist.name)}`} 
                                   alt={artist.name} 
+                                  loading="lazy"
                                   className="w-full h-full object-cover"
                                   onError={(e) => {
                                     (e.target as HTMLImageElement).src = '/icon.svg';
