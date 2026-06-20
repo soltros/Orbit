@@ -8,7 +8,7 @@ import { LoginView } from './components/LoginView';
 import { SetupWizard } from './components/SetupWizard';
 import { SettingsModal } from './components/SettingsModal';
 import { FavoritesModal } from './components/FavoritesModal';
-import { Radio, AlertTriangle, Users, LogOut, RefreshCw, Settings, Heart } from 'lucide-react';
+import { AlertTriangle, Users, LogOut, RefreshCw, Settings, Heart } from 'lucide-react';
 
 const OrbitApp: React.FC = () => {
   const { error, acousticStats, clearQueue } = useAudioPlayer();

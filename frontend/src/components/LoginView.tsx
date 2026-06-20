@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogIn, Server, User, KeyRound, Loader2 } from 'lucide-react';
+import { Server, User, KeyRound, Loader2 } from 'lucide-react';
 
 interface LoginViewProps {
   onLoginSuccess: () => void;
