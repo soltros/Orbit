@@ -105,9 +105,12 @@ def process_single_track(track_id):
             
         logger.info(f"Processing track: {track.title} - {track.artist} (ID: {track.id})")
         
-        url = app.config.get('SUBSONIC_URL')
-        user = app.config.get('SUBSONIC_USER')
-        password = app.config.get('SUBSONIC_PASS')
+        from app.config import load_persistent_settings
+        settings = load_persistent_settings()
+        
+        url = settings.get('SUBSONIC_URL') or app.config.get('SUBSONIC_URL')
+        user = settings.get('SUBSONIC_USER') or app.config.get('SUBSONIC_USER')
+        password = settings.get('SUBSONIC_PASS') or app.config.get('SUBSONIC_PASS')
         
         if not url or not user or not password:
             logger.error("Missing Subsonic credentials in settings. Cannot download track.")
