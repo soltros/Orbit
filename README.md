@@ -1,4 +1,4 @@
-# Orbit 🪐
+# Orbit
 
 <p align="center">
   <img src="frontend/public/icon.svg" width="150" alt="Orbit Logo" />
