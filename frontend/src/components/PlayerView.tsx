@@ -100,30 +100,30 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ onOpenBrowser }) => {
         <div className={`relative w-32 h-32 bg-gradient-to-tr from-slate-950 to-indigo-950 rounded-full flex items-center justify-center border-2 border-indigo-500/40 shadow-inner overflow-hidden ${isPlaying ? 'animate-[spin_20s_linear_infinite]' : ''}`}>
           {hasTrack ? (
             <img 
-              src={`/api/subsonic/cover/${currentTrack.track.id}`} 
-              alt="Cover Art" 
+              // We now prefer the Artist Picture in the player, per user request.
+              // This endpoint uses our backend logic to get the artist avatar.
+              src={`/api/subsonic/artist-cover/${encodeURIComponent(currentTrack.track.artist)}`} 
+              alt="Artist" 
               className="w-full h-full object-cover"
               onError={(e) => {
-                if (trackInfo?.image) {
-                  // Fallback 1: Last.fm Track/Album art
-                  (e.target as HTMLImageElement).src = trackInfo.image;
-                  // Don't loop if this fails too
+                if (artistInfo?.image) {
+                  // Fallback: Last.fm Artist image
+                  (e.target as HTMLImageElement).src = artistInfo.image;
                   (e.target as HTMLImageElement).onerror = (e2) => {
-                    if (artistInfo?.image) {
-                      // Fallback 2: Last.fm Artist image
-                      (e2.target as HTMLImageElement).src = artistInfo.image;
+                    if (trackInfo?.image) {
+                      (e2.target as HTMLImageElement).src = trackInfo.image;
                       (e2.target as HTMLImageElement).onerror = (e3) => {
-                         (e3.target as HTMLImageElement).style.display = 'none';
+                        (e3.target as HTMLImageElement).style.display = 'none';
                       };
                     } else {
                       (e2.target as HTMLImageElement).style.display = 'none';
                     }
                   };
-                } else if (artistInfo?.image) {
-                  // Fallback 2: Last.fm Artist image directly
-                  (e.target as HTMLImageElement).src = artistInfo.image;
+                } else if (trackInfo?.image) {
+                  // Fallback 2: Last.fm Track art
+                  (e.target as HTMLImageElement).src = trackInfo.image;
                   (e.target as HTMLImageElement).onerror = (e2) => {
-                     (e2.target as HTMLImageElement).style.display = 'none';
+                    (e2.target as HTMLImageElement).style.display = 'none';
                   };
                 } else {
                   (e.target as HTMLImageElement).style.display = 'none';
