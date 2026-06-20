@@ -231,3 +231,27 @@ def seed_station():
         db.session.rollback()
         current_app.logger.error(f"Error seeding station: {str(e)}")
         return jsonify({"status": "error", "message": "An internal error occurred."}), 500
+
+@library_bp.route('/reset-failed-analysis', methods=['POST'])
+def reset_failed_analysis():
+    """
+    Resets all tracks with acoustic_status='failed' to 'pending'.
+    """
+    try:
+        failed_tracks = Track.query.filter_by(acoustic_status='failed').all()
+        count = len(failed_tracks)
+        
+        for track in failed_tracks:
+            track.acoustic_status = 'pending'
+            track.acoustic_error = None
+            
+        db.session.commit()
+        return jsonify({
+            "status": "success",
+            "message": f"Successfully reset {count} failed tracks to pending."
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error resetting failed tracks: {str(e)}")
+        return jsonify({"status": "error", "message": "Failed to reset tracks."}), 500

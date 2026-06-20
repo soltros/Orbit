@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Server, KeyRound, Save, Loader2, Sparkles, HardDrive, Download, Upload, Shield } from 'lucide-react';
+import { X, Server, KeyRound, Save, Loader2, Sparkles, HardDrive, Download, Upload, Shield, RefreshCw } from 'lucide-react';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -106,6 +106,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
       setMessage({ type: 'error', text: 'Network error saving settings.' });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleResetFailedAnalysis = async () => {
+    try {
+      const res = await fetch('/api/library/reset-failed-analysis', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok && data.status === 'success') {
+        setMessage({ type: 'success', text: data.message });
+      } else {
+        setMessage({ type: 'error', text: data.message || 'Failed to reset analysis.' });
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Network error resetting analysis.' });
     }
   };
 
@@ -302,6 +316,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                       <Upload className="w-6 h-6 text-violet-400" />
                       <span className="text-sm font-bold text-white">Import Database</span>
                       <span className="text-[10px] text-gray-500 text-center">Restore from a previous backup (Coming soon)</span>
+                    </button>
+
+                    <button 
+                      onClick={handleResetFailedAnalysis}
+                      className="flex flex-col items-center justify-center gap-2 p-6 bg-white/5 border border-white/10 hover:border-amber-500/50 hover:bg-amber-500/10 rounded-xl transition md:col-span-2"
+                    >
+                      <RefreshCw className="w-6 h-6 text-amber-400" />
+                      <span className="text-sm font-bold text-white">Reset Failed Analysis Tracks</span>
+                      <span className="text-[10px] text-gray-400 text-center">Re-queues tracks that previously failed acoustic analysis.</span>
                     </button>
                   </div>
                 </div>
