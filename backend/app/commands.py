@@ -53,6 +53,13 @@ def sync_subsonic_command(limit):
                     if not batch:
                         break
                     
+                    # Pre-fetch existing genres
+                    existing_genres = {g.name: g for g in Genre.query.all()}
+                    
+                    # Pre-fetch existing tracks in this batch
+                    batch_ids = [s.get('id') for s in batch if s.get('id')]
+                    existing_tracks = {t.id: t for t in Track.query.filter(Track.id.in_(batch_ids)).all()}
+                    
                     for song_data in batch:
                         track_id = song_data.get('id')
                         if not track_id:
@@ -66,7 +73,7 @@ def sync_subsonic_command(limit):
                         path = song_data.get('path')
                         
                         # Find or create track
-                        track = Track.query.get(track_id)
+                        track = existing_tracks.get(track_id)
                         if not track:
                             track = Track(id=track_id)
                             db.session.add(track)
@@ -80,10 +87,11 @@ def sync_subsonic_command(limit):
                         # Handle genres
                         genre_name = song_data.get('genre')
                         if genre_name:
-                            genre = Genre.query.filter_by(name=genre_name).first()
+                            genre = existing_genres.get(genre_name)
                             if not genre:
                                 genre = Genre(name=genre_name)
                                 db.session.add(genre)
+                                existing_genres[genre_name] = genre
                             if genre not in track.genres:
                                 track.genres.append(genre)
                                 

@@ -167,8 +167,9 @@ def process_single_track(track_id):
 def run_worker_loop():
     logger.info("Orbit acoustic analysis worker started successfully with Multi-Threading.")
     
-    # Allow up to 4 concurrent downloads/analyses to maximize CPU and Network utilization
-    max_workers = 4
+    # Since the container is restricted to 1 CPU core and librosa is highly CPU-bound,
+    # multithreading causes massive GIL contention and thrashing. Processing 1 at a time is much faster.
+    max_workers = 1
     
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         while True:
