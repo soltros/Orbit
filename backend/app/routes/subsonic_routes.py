@@ -322,16 +322,4 @@ def get_artist_cover(artist_name):
     except Exception as e:
         current_app.logger.error(f"Error fetching lastfm artist cover: {str(e)}")
 
-    # Fallback: Retrieve the first track for this artist to use as their avatar
-    try:
-        from sqlalchemy import func
-        track = Track.query.filter(func.lower(Track.artist) == artist_name.lower()).first()
-        if not track:
-            return "Not found", 404
-            
-        # Redirect to our internal cached cover endpoint instead of refetching
-        return redirect(f"/api/subsonic/cover/{track.id}")
-        
-    except Exception as e:
-        current_app.logger.error(f"Error fetching fallback artist cover: {str(e)}")
-        return "Not found", 404
+    return "Not found", 404
