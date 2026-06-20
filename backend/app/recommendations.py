@@ -144,4 +144,31 @@ def get_hybrid_recommendations(user, count=5):
     # Sort by score descending
     scored_candidates.sort(key=lambda x: x["score"], reverse=True)
     
-    return scored_candidates[:count]
+    # Enforce Artist Diversity: Try to pick at most 1 track per artist per batch
+    final_picks = []
+    seen_artists = set()
+    
+    # Track the seed artist so we don't spam them
+    if seed_track:
+        seen_artists.add(seed_track.artist.lower())
+        
+    for cand in scored_candidates:
+        if len(final_picks) >= count:
+            break
+            
+        track = Track.query.get(cand["track_id"])
+        artist_lower = track.artist.lower()
+        
+        if artist_lower not in seen_artists:
+            seen_artists.add(artist_lower)
+            final_picks.append(cand)
+            
+    # If we couldn't find enough unique artists, fill the rest with whatever is left
+    if len(final_picks) < count:
+        for cand in scored_candidates:
+            if cand not in final_picks:
+                final_picks.append(cand)
+                if len(final_picks) >= count:
+                    break
+    
+    return final_picks
