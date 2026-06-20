@@ -60,4 +60,8 @@ class Config:
     # Optional local track buffering to avoid constant remote streaming connections
     raw_buffering = _persistent.get("ENABLE_LOCAL_BUFFERING") or os.environ.get("ENABLE_LOCAL_BUFFERING", "true")
     ENABLE_LOCAL_BUFFERING = str(raw_buffering).lower() == "true"
-
+    
+    raw_setup = _persistent.get("SETUP_COMPLETED")
+    if raw_setup is None:
+        raw_setup = os.environ.get("SETUP_COMPLETED", "false")
+    SETUP_COMPLETED = str(raw_setup).lower() == "true"
