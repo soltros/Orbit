@@ -87,18 +87,22 @@ Orbit is configured via environment variables inside a `.env` file at the reposi
 - Docker Engine v20.10+
 - Docker Compose v2.0+
 
-### Step 1: Create Environment Configuration
-Copy the template `.env.example` file to `.env` and open it to fill out your subsonic credentials, volume mounts, and LLM API keys:
-```bash
-cp .env.example .env
-```
+### Step 1: Launch with Docker Compose
+Orbit is fully containerized and uses `docker compose` for orchestration. There is no need to manually configure `.env` variables or API keys before starting—Orbit includes a fully guided web setup wizard!
 
-### Step 2: Launch with Docker Compose
-Orbit is fully containerized and uses `docker compose` for orchestration. To build and start all services in detached mode, execute:
+To build and start all services in detached mode, execute:
 ```bash
 docker compose up -d --build
 ```
-This launches `orbit-traefik`, `orbit-backend`, `orbit-worker`, and `orbit-frontend` connected over a secure bridge network.
+This launches `orbit-backend`, `orbit-worker`, and `orbit-frontend` connected over a secure bridge network.
+
+### Step 2: Web Setup Wizard
+Once the containers are running, navigate to your server's IP address or domain in your browser. 
+
+You will be greeted by the Orbit Login screen. To begin initial configuration:
+1. Log in using the default setup credentials: **Username:** `admin` / **Password:** `admin123` (You can enter any dummy text for the server URL).
+2. The Setup Wizard will automatically launch!
+3. Follow the guided steps to connect your Subsonic server and configure your preferred AI recommendation engines.
 
 ### Step 3: Index Your Subsonic Library
 Instruct Orbit to crawl and cache your Subsonic library metadata inside the SQLite database:
