@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Heart, Play, Loader2, Music } from 'lucide-react';
+import { X, Heart, Play, Loader2 } from 'lucide-react';
 
 interface FavoritesModalProps {
   isOpen: boolean;

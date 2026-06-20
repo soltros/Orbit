@@ -110,27 +110,28 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ onOpenBrowser }) => {
               alt="Artist" 
               className="w-full h-full object-cover"
               onError={(e) => {
+                const target = e.currentTarget;
                 if (artistInfo?.image) {
                   // Fallback: Last.fm Artist image
-                  (e.target as HTMLImageElement).src = artistInfo.image;
-                  (e.target as HTMLImageElement).onerror = (e2) => {
+                  target.src = artistInfo.image;
+                  target.onerror = () => {
                     if (trackInfo?.image) {
-                      (e2.target as HTMLImageElement).src = trackInfo.image;
-                      (e2.target as HTMLImageElement).onerror = (e3) => {
-                        (e3.target as HTMLImageElement).style.display = 'none';
+                      target.src = trackInfo.image;
+                      target.onerror = () => {
+                        target.style.display = 'none';
                       };
                     } else {
-                      (e2.target as HTMLImageElement).style.display = 'none';
+                      target.style.display = 'none';
                     }
                   };
                 } else if (trackInfo?.image) {
                   // Fallback 2: Last.fm Track art
-                  (e.target as HTMLImageElement).src = trackInfo.image;
-                  (e.target as HTMLImageElement).onerror = (e2) => {
-                    (e2.target as HTMLImageElement).style.display = 'none';
+                  target.src = trackInfo.image;
+                  target.onerror = () => {
+                    target.style.display = 'none';
                   };
                 } else {
-                  (e.target as HTMLImageElement).style.display = 'none';
+                  target.style.display = 'none';
                 }
               }}
             />

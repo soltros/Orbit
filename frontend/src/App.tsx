@@ -11,7 +11,7 @@ import { FavoritesModal } from './components/FavoritesModal';
 import { Radio, AlertTriangle, Users, LogOut, RefreshCw, Settings, Heart } from 'lucide-react';
 
 const OrbitApp: React.FC = () => {
-  const { error, currentTrack, acousticStats, clearQueue } = useAudioPlayer();
+  const { error, acousticStats, clearQueue } = useAudioPlayer();
   const [browserOpen, setBrowserOpen] = useState(false);
   const [favoritesOpen, setFavoritesOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -54,7 +54,7 @@ const OrbitApp: React.FC = () => {
   React.useEffect(() => {
     if (!isAuthenticated) return;
     
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     
     const checkSync = async () => {
       try {

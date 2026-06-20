@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Server, User, KeyRound, Radio, Bot, Sparkles, Loader2, ArrowRight, Music } from 'lucide-react';
+import { Server, User, KeyRound, Radio, Sparkles, Loader2, ArrowRight, Music } from 'lucide-react';
 
 interface SetupWizardProps {
   onComplete: () => void;

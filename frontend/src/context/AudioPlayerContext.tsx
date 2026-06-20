@@ -65,7 +65,7 @@ interface AudioPlayerContextType {
   setRecommendationMode: (mode: 'llm' | 'local') => Promise<void>;
   refreshStats: () => Promise<void>;
   startStation: () => Promise<void>;
-  seedStation: (opts: { artist?: string; trackId?: string }) => Promise<void>;
+  seedStation: (opts: { artist?: string; trackId?: string; genre?: string }) => Promise<void>;
 }
 
 const AudioPlayerContext = createContext<AudioPlayerContextType | undefined>(undefined);
@@ -260,13 +260,14 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   // Seed the station from a specific artist or track
-  const seedStation = async ({ artist, trackId }: { artist?: string; trackId?: string }) => {
+  const seedStation = async ({ artist, trackId, genre }: { artist?: string; trackId?: string; genre?: string }) => {
     setIsLoading(true);
     setError(null);
     try {
       const body: Record<string, string> = {};
       if (trackId) body.track_id = trackId;
       else if (artist) body.artist = artist;
+      else if (genre) body.genre = genre;
 
       const res = await fetch('/api/library/seed', {
         method: 'POST',

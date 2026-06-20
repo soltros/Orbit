@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAudioPlayer } from '../context/AudioPlayerContext';
 import {
   X, Search, Music, ChevronRight, ChevronDown, Shuffle, Play, Loader2, Users, Disc
@@ -393,7 +393,7 @@ export const ArtistBrowser: React.FC<ArtistBrowserProps> = ({ onClose }) => {
         {tab === 'genres' && (
           <div className="flex-1 overflow-y-auto px-4 py-4 pb-8 space-y-2 no-scrollbar">
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-2">
-              {genres.map((genre, i) => {
+              {genres.map((genre) => {
                 // Generate a vibrant color gradient based on the genre name length/chars
                 const hue1 = (genre.length * 25) % 360;
                 const hue2 = (genre.charCodeAt(0) * 15) % 360;
