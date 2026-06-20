@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAudioPlayer } from '../context/AudioPlayerContext';
-import { Play, Pause, SkipForward, Volume2, VolumeX, Heart, ThumbsDown, Users, Download } from 'lucide-react';
+import { Play, Pause, SkipForward, Volume2, VolumeX, Heart, ThumbsDown, Users, Download, PowerOff } from 'lucide-react';
 
 interface PlayerViewProps {
   onOpenBrowser: () => void;
@@ -24,6 +24,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ onOpenBrowser }) => {
     toggleMute,
     acousticStats,
     likedTracks,
+    clearQueue,
   } = useAudioPlayer();
 
   const [artistInfo, setArtistInfo] = React.useState<any>(null);
@@ -163,11 +164,19 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ onOpenBrowser }) => {
               <p className="text-xs text-gray-500 truncate max-w-[150px]">{currentTrack.track.album || 'No Album'}</p>
               <button
                 onClick={onOpenBrowser}
-                title="Abandon station and start a new one"
+                title="Browse library to seed a new station"
                 className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-indigo-300 hover:text-white bg-indigo-500/10 hover:bg-indigo-500/30 border border-indigo-500/20 px-2 py-0.5 rounded-full transition duration-150"
               >
                 <Users className="w-3 h-3" />
                 New Station
+              </button>
+              <button
+                onClick={clearQueue}
+                title="Stop playback and clear the queue"
+                className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-red-400 hover:text-white bg-red-500/10 hover:bg-red-500/30 border border-red-500/20 px-2 py-0.5 rounded-full transition duration-150"
+              >
+                <PowerOff className="w-3 h-3" />
+                Abandon
               </button>
             </div>
 
