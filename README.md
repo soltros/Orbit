@@ -45,6 +45,13 @@ You can toggle between two curating backends inside the client interface:
 - **Lock-Screen Media Controls**: Integrates the browser Media Session API, enabling lock-screen play, pause, seek, and next-track controls on iOS and Android devices.
 - **Look-Ahead Pre-fetching**: Detects when track progress reaches 80%, then silently loads the next song in the queue into a separate browser background buffer, achieving gapless playback.
 - **Security credential shield**: The frontend only communicates with Orbit. The backend securely performs MD5 salts and hashes on your Navidrome credentials, proxying the stream so your raw subsonic passwords are never exposed to the browser.
+- **Smart Image Caching**: Orbit dynamically requests, routes, and locally caches Last.fm high-quality artist photos for the player and artist browser, while simultaneously disk-caching Subsonic album art to ensure lightning-fast UI load times and minimal upstream load.
+
+### 3. Administration & Security
+- **In-App Database Management**: Effortlessly click-to-export and click-to-import full backups of the `orbit.db` SQLite database straight from the UI Settings modal.
+- **Acoustic Worker Resets**: Bulk reset any audio tracks that failed local acoustic analysis so the background worker can reattempt processing them.
+- **Subsonic User Dashboard**: Administrators can view a synced list of all Subsonic/Navidrome users who have logged into Orbit, alongside their Orbit play history counts.
+- **Production Hardened**: Auto-generates cryptographic secret keys, utilizes strict session cookies (Lax, HttpOnly), and natively bootstraps SQLite performance indexes for multi-thousand track databases.
 
 ---
 
@@ -64,6 +71,8 @@ Orbit is configured via environment variables inside a `.env` file at the reposi
 | `LLM_PROVIDER` | API vendor used for Cloud Mode (`openai` or `anthropic`). | `openai` | No |
 | `OPENAI_API_KEY` | API authentication key for OpenAI services. | None | Yes (if using OpenAI) |
 | `ANTHROPIC_API_KEY` | API authentication key for Anthropic services. | None | Yes (if using Anthropic) |
+| `LASTFM_API_KEY` | API key for fetching artist metadata and high-res avatars. | None | No |
+| `LASTFM_API_SECRET` | Secret key for authenticated Last.fm API endpoints. | None | No |
 | `DOMAIN_NAME` | Host domain name used by Traefik routing. | `orbit.localhost` | No |
 
 ---
