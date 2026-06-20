@@ -6,9 +6,10 @@ interface LoginViewProps {
 }
 
 export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
-  const [url, setUrl] = useState('');
-  const [username, setUsername] = useState('');
+  const [url, setUrl] = useState(() => localStorage.getItem('orbit_login_url') || '');
+  const [username, setUsername] = useState(() => localStorage.getItem('orbit_login_username') || '');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(() => !!localStorage.getItem('orbit_login_username'));
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +44,13 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
       const data = await res.json();
 
       if (data.status === 'success') {
+        if (rememberMe) {
+          localStorage.setItem('orbit_login_url', url);
+          localStorage.setItem('orbit_login_username', username);
+        } else {
+          localStorage.removeItem('orbit_login_url');
+          localStorage.removeItem('orbit_login_username');
+        }
         onLoginSuccess();
       } else {
         setError(data.message || 'Login failed. Check your credentials and server URL.');
@@ -126,6 +134,22 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
                 value={password}
                 onChange={e => setPassword(e.target.value)}
               />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <input
+                id="remember-me"
+                name="remember-me"
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="h-4 w-4 text-indigo-500 focus:ring-indigo-500 border-gray-600 rounded bg-slate-900/50"
+              />
+              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-400 cursor-pointer select-none">
+                Remember me
+              </label>
             </div>
           </div>
 
