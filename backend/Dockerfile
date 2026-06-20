@@ -7,8 +7,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Create a non-root user for security
-RUN useradd -m -u 1000 appuser
 
 WORKDIR /app
 
@@ -16,10 +14,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy backend source code with correct ownership
-COPY --chown=appuser:appuser . .
-
-USER appuser
+# Copy backend source code
+COPY . .
 
 EXPOSE 5000
 
