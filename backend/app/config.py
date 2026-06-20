@@ -39,7 +39,7 @@ class Config:
     
     # SQLite configuration
     DATABASE_PATH = os.environ.get("DATABASE_PATH", "/app/data/orbit.db")
-    SQLALCHEMY_DATABASE_URI = f"sqlite:///{DATABASE_PATH}"
+    SQLALCHEMY_DATABASE_URI = f"sqlite:///{DATABASE_PATH}?timeout=30"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Navidrome/Subsonic Connection
