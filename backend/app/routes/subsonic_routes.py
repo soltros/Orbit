@@ -61,7 +61,12 @@ subsonic_bp = Blueprint('subsonic', __name__, url_prefix='/api/subsonic')
 
 @subsonic_bp.route('/cover/<track_id>')
 def stream_cover(track_id):
-    """Proxy the cover art from Navidrome."""
+    """Proxy the cover art from Navidrome, caching it locally."""
+    cache_path = os.path.join(CACHE_DIR, f"cover_{track_id}.jpg")
+    
+    if os.path.exists(cache_path):
+        return send_file(cache_path, mimetype='image/jpeg')
+        
     client = SubsonicClient(
         base_url=current_app.config['SUBSONIC_URL'],
         username=current_app.config['SUBSONIC_USER'],
@@ -71,7 +76,15 @@ def stream_cover(track_id):
     try:
         req = requests.get(url, stream=True, timeout=10)
         req.raise_for_status()
-        return Response(stream_with_context(req.iter_content(chunk_size=8192)), content_type=req.headers.get('Content-Type', 'image/jpeg'))
+        
+        # Save to cache
+        temp_path = cache_path + ".tmp"
+        with open(temp_path, 'wb') as f:
+            for chunk in req.iter_content(chunk_size=8192):
+                f.write(chunk)
+        os.rename(temp_path, cache_path)
+        
+        return send_file(cache_path, mimetype=req.headers.get('Content-Type', 'image/jpeg'))
     except Exception as e:
         current_app.logger.error(f"Failed to fetch cover art for {track_id}: {str(e)}")
         return "Not found", 404
