@@ -17,25 +17,35 @@ def create_app(config_class=Config):
     if db_dir:
         os.makedirs(db_dir, exist_ok=True)
 
-    # Create tables
+    # Create tables and indexes
     with app.app_context():
         from app import models
-        db.create_all()
-        
-        # Ensure indexes exist for older databases upgrading to this version
+        import time
+        from sqlalchemy.exc import OperationalError
         from sqlalchemy import text
-        try:
-            with db.engine.connect() as conn:
-                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_queue_items_user_id ON queue_items (user_id);"))
-                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_queue_items_track_id ON queue_items (track_id);"))
-                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_queue_items_position ON queue_items (position);"))
-                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_queue_items_status ON queue_items (status);"))
-                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_interaction_history_user_id ON interaction_history (user_id);"))
-                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_interaction_history_track_id ON interaction_history (track_id);"))
-                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_interaction_history_action ON interaction_history (action);"))
-                conn.commit()
-        except Exception as e:
-            app.logger.warning(f"Could not create indexes manually: {e}")
+        
+        # Retry logic for gunicorn multiprocessing concurrency
+        for _ in range(10):
+            try:
+                db.create_all()
+                
+                # Ensure indexes exist for older databases upgrading to this version
+                with db.engine.connect() as conn:
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_queue_items_user_id ON queue_items (user_id);"))
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_queue_items_track_id ON queue_items (track_id);"))
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_queue_items_position ON queue_items (position);"))
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_queue_items_status ON queue_items (status);"))
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_interaction_history_user_id ON interaction_history (user_id);"))
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_interaction_history_track_id ON interaction_history (track_id);"))
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_interaction_history_action ON interaction_history (action);"))
+                    conn.commit()
+                break
+            except OperationalError as e:
+                if 'database is locked' in str(e).lower():
+                    time.sleep(0.5)
+                else:
+                    app.logger.warning(f"Failed to create db tables or indexes: {e}")
+                    break
 
     # Simple healthcheck endpoint
     @app.route("/health")
