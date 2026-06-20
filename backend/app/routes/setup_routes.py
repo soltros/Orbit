@@ -15,8 +15,8 @@ def get_settings_path():
 @setup_bp.route('/status', methods=['GET'])
 def setup_status():
     """Checks if Orbit needs initial configuration."""
-    url = current_app.config.get('SUBSONIC_URL')
-    if not url or url.startswith("your-") or url == "":
+    url = current_app.config.get('SUBSONIC_URL', '')
+    if not url or 'your-' in url or url == "http://navidrome:4000":
         return jsonify({"needs_setup": True})
         
     return jsonify({"needs_setup": False})
