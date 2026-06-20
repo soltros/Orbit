@@ -8,19 +8,34 @@ load_dotenv()
 def load_persistent_settings():
     settings_path = os.environ.get("DATABASE_PATH", "/app/data/orbit.db")
     settings_file = os.path.join(os.path.dirname(settings_path), "settings.json")
+    settings = {}
     if os.path.exists(settings_file):
         try:
             with open(settings_file, "r") as f:
-                return json.load(f)
+                settings = json.load(f)
         except Exception as e:
             print(f"Error loading settings.json: {e}")
-    return {}
+            
+    # Production security: ensure we have a persistent SECRET_KEY
+    if "SECRET_KEY" not in settings and not os.environ.get("SECRET_KEY"):
+        import secrets
+        settings["SECRET_KEY"] = secrets.token_hex(32)
+        try:
+            os.makedirs(os.path.dirname(settings_file), exist_ok=True)
+            with open(settings_file, "w") as f:
+                json.dump(settings, f, indent=4)
+        except Exception as e:
+            print(f"Error saving generated SECRET_KEY to settings.json: {e}")
+            
+    return settings
 
 _persistent = load_persistent_settings()
 
 
 class Config:
-    SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key-change-this")
+    SECRET_KEY = os.environ.get("SECRET_KEY") or _persistent.get("SECRET_KEY")
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    SESSION_COOKIE_HTTPONLY = True
     
     # SQLite configuration
     DATABASE_PATH = os.environ.get("DATABASE_PATH", "/app/data/orbit.db")

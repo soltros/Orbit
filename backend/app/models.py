@@ -79,11 +79,11 @@ class UserProfile(db.Model):
 class QueueItem(db.Model):
     __tablename__ = 'queue_items'
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user_profiles.id', ondelete='CASCADE'), nullable=False)
-    track_id = db.Column(db.String(64), db.ForeignKey('tracks.id', ondelete='CASCADE'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user_profiles.id', ondelete='CASCADE'), nullable=False, index=True)
+    track_id = db.Column(db.String(64), db.ForeignKey('tracks.id', ondelete='CASCADE'), nullable=False, index=True)
     why_queued = db.Column(db.Text) # LLM explanation sentence
-    position = db.Column(db.Integer, nullable=False)
-    status = db.Column(db.String(20), default='pending') # pending, playing, played, skipped
+    position = db.Column(db.Integer, nullable=False, index=True)
+    status = db.Column(db.String(20), default='pending', index=True) # pending, playing, played, skipped
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     played_at = db.Column(db.DateTime)
     skipped_at = db.Column(db.DateTime)
@@ -108,9 +108,9 @@ class QueueItem(db.Model):
 class InteractionHistory(db.Model):
     __tablename__ = 'interaction_history'
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user_profiles.id', ondelete='CASCADE'), nullable=False)
-    track_id = db.Column(db.String(64), db.ForeignKey('tracks.id', ondelete='CASCADE'), nullable=False)
-    action = db.Column(db.String(20), nullable=False) # play, skip, like, dislike
+    user_id = db.Column(db.Integer, db.ForeignKey('user_profiles.id', ondelete='CASCADE'), nullable=False, index=True)
+    track_id = db.Column(db.String(64), db.ForeignKey('tracks.id', ondelete='CASCADE'), nullable=False, index=True)
+    action = db.Column(db.String(20), nullable=False, index=True) # play, skip, like, dislike
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships

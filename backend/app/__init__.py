@@ -21,6 +21,21 @@ def create_app(config_class=Config):
     with app.app_context():
         from app import models
         db.create_all()
+        
+        # Ensure indexes exist for older databases upgrading to this version
+        from sqlalchemy import text
+        try:
+            with db.engine.connect() as conn:
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_queue_items_user_id ON queue_items (user_id);"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_queue_items_track_id ON queue_items (track_id);"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_queue_items_position ON queue_items (position);"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_queue_items_status ON queue_items (status);"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_interaction_history_user_id ON interaction_history (user_id);"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_interaction_history_track_id ON interaction_history (track_id);"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_interaction_history_action ON interaction_history (action);"))
+                conn.commit()
+        except Exception as e:
+            app.logger.warning(f"Could not create indexes manually: {e}")
 
     # Simple healthcheck endpoint
     @app.route("/health")
