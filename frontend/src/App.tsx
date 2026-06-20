@@ -116,9 +116,7 @@ const OrbitApp: React.FC = () => {
       {/* Header */}
       <header className="w-full max-w-5xl mx-auto px-6 py-5 flex items-center justify-between border-b border-white/5 backdrop-blur-md sticky top-0 z-30">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-            <Radio className="w-4.5 h-4.5 text-white" />
-          </div>
+          <img src="/icon.svg" className="w-8 h-8" alt="Orbit Logo" />
           <div>
             <h1 className="text-md font-bold tracking-widest text-white uppercase">Orbit</h1>
             <p className="text-[9px] text-gray-500 tracking-wider">INTELLIGENT JUKEBOX</p>

@@ -71,10 +71,8 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-900/20 rounded-full blur-[120px] pointer-events-none"></div>
       
       <div className="w-full max-w-lg space-y-8 p-10 bg-slate-900/60 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-2xl relative z-10">
-        <div className="text-center">
-          <div className="mx-auto h-16 w-16 bg-gradient-to-tr from-indigo-500 to-violet-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/30 mb-6 transform rotate-12">
-            <Radio className="h-8 w-8 text-white -rotate-12" />
-          </div>
+        <div className="text-center flex flex-col items-center">
+          <img src="/icon.svg" className="w-16 h-16 mb-6 drop-shadow-2xl hover:scale-105 transition-transform duration-300" alt="Orbit Logo" />
           <h2 className="mt-2 text-3xl font-extrabold text-white tracking-tight">Welcome to Orbit</h2>
           <p className="mt-2 text-sm text-gray-400">
             Let's get your intelligent, self-hosted jukebox connected to your music.

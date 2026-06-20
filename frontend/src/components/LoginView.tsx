@@ -73,10 +73,8 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen px-4 py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8 p-10 bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl shadow-2xl">
-        <div className="text-center">
-          <div className="mx-auto h-16 w-16 bg-gradient-to-tr from-indigo-500 to-violet-600 rounded-full flex items-center justify-center shadow-lg shadow-indigo-500/30 mb-6">
-            <LogIn className="h-8 w-8 text-white" />
-          </div>
+        <div className="text-center flex flex-col items-center">
+          <img src="/icon.svg" className="w-16 h-16 mb-6 drop-shadow-2xl hover:scale-105 transition-transform duration-300" alt="Orbit Logo" />
           <h2 className="mt-2 text-3xl font-extrabold text-white tracking-tight">Connect to Orbit</h2>
           <p className="mt-2 text-sm text-gray-400">
             Log in with your Subsonic or Navidrome server credentials.
