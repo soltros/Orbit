@@ -190,17 +190,12 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, [acousticStats?.pending_analysis]);
 
   // Synchronize queue size:
-  // - If queue is empty but tracks exist in DB → auto-generate and play
-  // - If queue is running low (< 3) → top it up silently
+  // - Keep the queue topped up to 5 tracks as long as a station is active
   useEffect(() => {
-    const cachedTracks = acousticStats?.cached_tracks ?? 0;
-    if (upcomingQueue.length === 0 && !currentTrack && cachedTracks > 0 && !isGeneratingRef.current) {
-      // Initial boot: library is synced but nothing is playing yet
-      triggerQueueGeneration(true);
-    } else if (upcomingQueue.length > 0 && upcomingQueue.length < 5 && !isGeneratingRef.current) {
+    if ((currentTrack || upcomingQueue.length > 0) && upcomingQueue.length < 5 && !isGeneratingRef.current) {
       triggerQueueGeneration(false);
     }
-  }, [upcomingQueue, acousticStats]);
+  }, [upcomingQueue, currentTrack]);
 
   // Volume persistent store
   const setVolume = (vol: number) => {

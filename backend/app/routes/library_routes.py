@@ -142,7 +142,10 @@ def seed_station():
                 return jsonify({"status": "error", "message": f"No tracks found for genre '{genre_name}'."}), 404
 
         else:
-            return jsonify({"status": "error", "message": "Provide either 'track_id', 'artist', or 'genre'."}), 400
+            # Random library fallback
+            seed_track = Track.query.order_by(db.func.random()).first()
+            if not seed_track:
+                return jsonify({"status": "error", "message": "Library is empty. Sync subsonic first."}), 404
 
         # Clear any existing queue so the seed starts fresh
         QueueItem.query.filter_by(user_id=user.id).delete()

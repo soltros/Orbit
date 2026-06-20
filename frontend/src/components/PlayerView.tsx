@@ -171,7 +171,13 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ onOpenBrowser }) => {
                 New Station
               </button>
               <button
-                onClick={clearQueue}
+                onClick={() => {
+                  if (window.confirm("You are about to abandon your station. Would you like to create a new station at random?")) {
+                    seedStation({});
+                  } else {
+                    clearQueue();
+                  }
+                }}
                 title="Stop playback and clear the queue"
                 className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-red-400 hover:text-white bg-red-500/10 hover:bg-red-500/30 border border-red-500/20 px-2 py-0.5 rounded-full transition duration-150"
               >
