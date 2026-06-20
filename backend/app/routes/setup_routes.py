@@ -104,3 +104,27 @@ def save_settings():
     except Exception as e:
         current_app.logger.error(f"Failed to save settings: {str(e)}")
         return jsonify({"status": "error", "message": "Could not write settings file."}), 500
+
+@setup_bp.route('/users', methods=['GET'])
+def get_users():
+    """Returns a list of all Orbit users (UserProfiles). Admin only."""
+    user = session.get('subsonic_user')
+    if user != current_app.config.get('SUBSONIC_USER'):
+        return jsonify({"status": "error", "message": "Unauthorized. Admin access required."}), 403
+
+    from app.models import UserProfile, InteractionHistory
+    try:
+        profiles = UserProfile.query.all()
+        users_list = []
+        for p in profiles:
+            play_count = InteractionHistory.query.filter_by(user_id=p.id, action='play').count()
+            users_list.append({
+                "id": p.id,
+                "username": p.username,
+                "created_at": p.created_at.isoformat() if p.created_at else None,
+                "play_count": play_count
+            })
+        return jsonify({"status": "success", "users": users_list}), 200
+    except Exception as e:
+        current_app.logger.error(f"Error fetching users: {str(e)}")
+        return jsonify({"status": "error", "message": "Failed to fetch users."}), 500

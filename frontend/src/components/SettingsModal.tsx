@@ -7,11 +7,12 @@ interface SettingsModalProps {
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'general' | 'api' | 'data'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'api' | 'data' | 'users'>('general');
   const [config, setConfig] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [usersList, setUsersList] = useState<any[]>([]);
 
   // Form states
   const [url, setUrl] = useState('');
@@ -40,6 +41,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
           setMessage({ type: 'error', text: 'Failed to load configuration.' });
           setIsLoading(false);
         });
+        
+      // Fetch users list
+      fetch('/api/setup/users')
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === 'success') {
+            setUsersList(data.users);
+          }
+        })
+        .catch(() => console.error('Failed to load users'));
     }
   }, [isOpen]);
 
@@ -171,9 +182,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 <HardDrive className="w-4 h-4" /> Backup & Data
               </button>
               <button
-                className={`flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-lg text-gray-500 opacity-50 cursor-not-allowed whitespace-nowrap`}
+                onClick={() => setActiveTab('users')}
+                className={`flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-lg transition-colors whitespace-nowrap ${
+                  activeTab === 'users' ? 'bg-indigo-500/20 text-indigo-300' : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'
+                }`}
               >
-                <Shield className="w-4 h-4" /> Users (Coming Soon)
+                <Shield className="w-4 h-4" /> Users
               </button>
             </div>
 
@@ -327,6 +341,37 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                       <span className="text-[10px] text-gray-400 text-center">Re-queues tracks that previously failed acoustic analysis.</span>
                     </button>
                   </div>
+                </div>
+              )}
+
+              {activeTab === 'users' && (
+                <div className="space-y-4 animate-in fade-in duration-300">
+                  <h3 className="text-sm font-semibold text-gray-300 mb-2 flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-emerald-400" /> User Management
+                  </h3>
+                  <p className="text-xs text-gray-400 mb-6">
+                    Orbit uses the users from your Subsonic/Navidrome server. When they log in to Orbit, their profile appears here.
+                  </p>
+                  
+                  {usersList.length === 0 ? (
+                    <div className="text-center p-6 bg-white/5 rounded-xl border border-white/10">
+                      <p className="text-sm text-gray-400">No users have logged into Orbit yet.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {usersList.map(user => (
+                        <div key={user.id} className="flex items-center justify-between p-4 bg-slate-950/50 border border-white/10 rounded-xl">
+                          <div>
+                            <div className="font-bold text-white text-sm">{user.username}</div>
+                            <div className="text-[10px] text-gray-500">First Login: {new Date(user.created_at).toLocaleDateString()}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xs font-bold text-indigo-400">{user.play_count} Tracks Played</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
