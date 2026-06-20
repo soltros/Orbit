@@ -74,7 +74,7 @@ def stream_cover(track_id):
     )
     url = client.get_cover_art_url(track_id)
     try:
-        req = requests.get(url, stream=True, timeout=10)
+        req = requests.get(url, stream=True, timeout=3)
         req.raise_for_status()
         
         # Save to cache

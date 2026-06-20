@@ -82,6 +82,7 @@ export const FavoritesModal: React.FC<FavoritesModalProps> = ({ isOpen, onClose,
                     <img 
                       src={`/api/subsonic/cover/${track.id}`} 
                       alt="Cover" 
+                      loading="lazy"
                       className="w-10 h-10 rounded-md object-cover bg-slate-800"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = '/icon.svg';

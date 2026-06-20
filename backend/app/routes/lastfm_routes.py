@@ -23,7 +23,7 @@ def fetch_and_cache_artist(artist_name, api_key, api_secret):
             
         params['format'] = 'json'
         
-        response = requests.get("http://ws.audioscrobbler.com/2.0/", params=params, timeout=5)
+        response = requests.get("http://ws.audioscrobbler.com/2.0/", params=params, timeout=2)
         response.raise_for_status()
         data = response.json()
         
@@ -147,7 +147,7 @@ def get_track_info():
             
         params['format'] = 'json'
         
-        response = requests.get("http://ws.audioscrobbler.com/2.0/", params=params, timeout=5)
+        response = requests.get("http://ws.audioscrobbler.com/2.0/", params=params, timeout=2)
         response.raise_for_status()
         data = response.json()
         
