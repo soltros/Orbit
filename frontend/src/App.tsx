@@ -11,7 +11,7 @@ import { FavoritesModal } from './components/FavoritesModal';
 import { Radio, AlertTriangle, Users, LogOut, RefreshCw, Settings, Heart } from 'lucide-react';
 
 const OrbitApp: React.FC = () => {
-  const { error, currentTrack, acousticStats } = useAudioPlayer();
+  const { error, currentTrack, acousticStats, clearQueue } = useAudioPlayer();
   const [browserOpen, setBrowserOpen] = useState(false);
   const [favoritesOpen, setFavoritesOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -71,13 +71,14 @@ const OrbitApp: React.FC = () => {
     }
 
     if (isSyncing) {
+      clearQueue();
       interval = setInterval(checkSync, 3000);
     }
     
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isAuthenticated, isSyncing]);
+  }, [isAuthenticated, isSyncing, clearQueue]);
 
   if (isSetupNeeded === null) {
     return <div className="min-h-screen bg-[#050508]"></div>;
@@ -126,7 +127,7 @@ const OrbitApp: React.FC = () => {
 
         <div className="flex items-center gap-3">
           {/* Browse Artists button — always visible when tracks are synced */}
-          {hasTracks && (
+          {hasTracks && !isSyncing && (
             <>
               <button
                 onClick={() => setFavoritesOpen(true)}
@@ -208,21 +209,42 @@ const OrbitApp: React.FC = () => {
       )}
 
       {/* Main Grid Layout */}
-      <main className="flex-grow w-full max-w-5xl mx-auto px-6 py-6 grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-        {/* Left Side: Discovery & Stats */}
-        <div className="md:col-span-4 order-3 md:order-1 flex flex-col gap-6">
-          <DiscoveryHub onOpenBrowser={() => setBrowserOpen(true)} />
-        </div>
+      <main className="flex-grow w-full max-w-5xl mx-auto px-6 py-6 flex flex-col justify-center items-center">
+        {isSyncing ? (
+          <div className="flex flex-col items-center justify-center gap-6 p-12 bg-indigo-900/10 border border-indigo-500/20 rounded-3xl backdrop-blur-sm w-full max-w-2xl text-center shadow-2xl">
+            <div className="relative my-4">
+               <div className="absolute inset-0 border-4 border-indigo-500/20 rounded-full animate-ping"></div>
+               <RefreshCw className="w-16 h-16 text-indigo-400 animate-spin relative z-10" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-white mb-2">Syncing your Universe</h2>
+              <p className="text-indigo-200/60 max-w-md mx-auto leading-relaxed">
+                Orbit is downloading and analyzing your Subsonic library. We can't safely generate a station until the catalog is fully ingested. Please wait...
+              </p>
+            </div>
+            <div className="bg-indigo-950/50 border border-indigo-500/30 px-6 py-3 rounded-full flex items-center gap-3 mt-4 shadow-inner">
+               <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+               <span className="text-sm font-mono text-indigo-300 font-bold tracking-wider">{syncCount.toLocaleString()} TRACKS INDEXED</span>
+            </div>
+          </div>
+        ) : (
+          <div className="w-full grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+            {/* Left Side: Discovery & Stats */}
+            <div className="md:col-span-4 order-3 md:order-1 flex flex-col gap-6">
+              <DiscoveryHub onOpenBrowser={() => setBrowserOpen(true)} />
+            </div>
 
-        {/* Center: Audio Player */}
-        <div className="md:col-span-4 order-1 md:order-2 flex flex-col items-center">
-          <PlayerView onOpenBrowser={() => setBrowserOpen(true)} />
-        </div>
+            {/* Center: Audio Player */}
+            <div className="md:col-span-4 order-1 md:order-2 flex flex-col items-center">
+              <PlayerView onOpenBrowser={() => setBrowserOpen(true)} />
+            </div>
 
-        {/* Right Side: Rolling Queue */}
-        <div className="md:col-span-4 order-2 md:order-3 flex flex-col gap-6">
-          <QueueView />
-        </div>
+            {/* Right Side: Rolling Queue */}
+            <div className="md:col-span-4 order-2 md:order-3 flex flex-col gap-6">
+              <QueueView />
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Artist Browser Drawer — rendered at root so it overlays everything */}
