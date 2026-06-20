@@ -1,6 +1,7 @@
 from flask import Blueprint, current_app, jsonify, request
 import requests
 import urllib.parse
+import hashlib
 from app import db
 from app.models import Track
 
@@ -13,14 +14,27 @@ def get_artist_info():
         return jsonify({"error": "Artist name is required"}), 400
 
     api_key = current_app.config.get('LASTFM_API_KEY')
+    api_secret = current_app.config.get('LASTFM_API_SECRET')
     if not api_key:
         return jsonify({"error": "LastFM API key not configured"}), 404
 
     try:
-        encoded_name = urllib.parse.quote(artist_name)
-        url = f"http://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist={encoded_name}&api_key={api_key}&format=json"
+        params = {
+            'method': 'artist.getinfo',
+            'artist': artist_name,
+            'api_key': api_key
+        }
         
-        response = requests.get(url, timeout=5)
+        if api_secret:
+            sig_str = ""
+            for k in sorted(params.keys()):
+                sig_str += f"{k}{params[k]}"
+            sig_str += api_secret
+            params['api_sig'] = hashlib.md5(sig_str.encode('utf-8')).hexdigest()
+            
+        params['format'] = 'json'
+        
+        response = requests.get("http://ws.audioscrobbler.com/2.0/", params=params, timeout=5)
         response.raise_for_status()
         data = response.json()
         
@@ -78,12 +92,26 @@ def get_track_info():
     if not api_key:
         return jsonify({"error": "LastFM API key not configured"}), 404
 
+    api_secret = current_app.config.get('LASTFM_API_SECRET')
+
     try:
-        encoded_artist = urllib.parse.quote(artist_name)
-        encoded_track = urllib.parse.quote(track_name)
-        url = f"http://ws.audioscrobbler.com/2.0/?method=track.getinfo&artist={encoded_artist}&track={encoded_track}&api_key={api_key}&format=json"
+        params = {
+            'method': 'track.getinfo',
+            'artist': artist_name,
+            'track': track_name,
+            'api_key': api_key
+        }
         
-        response = requests.get(url, timeout=5)
+        if api_secret:
+            sig_str = ""
+            for k in sorted(params.keys()):
+                sig_str += f"{k}{params[k]}"
+            sig_str += api_secret
+            params['api_sig'] = hashlib.md5(sig_str.encode('utf-8')).hexdigest()
+            
+        params['format'] = 'json'
+        
+        response = requests.get("http://ws.audioscrobbler.com/2.0/", params=params, timeout=5)
         response.raise_for_status()
         data = response.json()
         
