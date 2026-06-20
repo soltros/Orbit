@@ -25,11 +25,13 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ onOpenBrowser }) => {
     acousticStats,
     likedTracks,
     clearQueue,
+    seedStation,
   } = useAudioPlayer();
 
   const [artistInfo, setArtistInfo] = React.useState<any>(null);
   const [trackInfo, setTrackInfo] = React.useState<any>(null);
   const [showBio, setShowBio] = React.useState(false);
+  const [showAbandonModal, setShowAbandonModal] = React.useState(false);
 
   React.useEffect(() => {
     if (!currentTrack) {
@@ -172,13 +174,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ onOpenBrowser }) => {
                 New Station
               </button>
               <button
-                onClick={() => {
-                  if (window.confirm("You are about to abandon your station. Would you like to create a new station at random?")) {
-                    seedStation({});
-                  } else {
-                    clearQueue();
-                  }
-                }}
+                onClick={() => setShowAbandonModal(true)}
                 title="Stop playback and clear the queue"
                 className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-red-400 hover:text-white bg-red-500/10 hover:bg-red-500/30 border border-red-500/20 px-2 py-0.5 rounded-full transition duration-150"
               >
@@ -329,6 +325,44 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ onOpenBrowser }) => {
           className="w-full h-1 ml-3 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-indigo-500/50 hover:accent-indigo-400/80 focus:outline-none"
         />
       </div>
+
+      {/* Abandon Modal */}
+      {showAbandonModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#0a0a12] border border-white/10 rounded-3xl p-6 max-w-sm w-full shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="text-xl font-bold text-white mb-2">Abandon Station?</h3>
+            <p className="text-sm text-gray-400 mb-6">
+              You are about to stop playback and abandon your current station. Would you like to seed a completely random new station, or just stop playback?
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => {
+                  seedStation({});
+                  setShowAbandonModal(false);
+                }}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 text-white font-bold text-sm shadow-lg shadow-indigo-500/25 transition duration-200"
+              >
+                Start Random Station
+              </button>
+              <button
+                onClick={() => {
+                  clearQueue();
+                  setShowAbandonModal(false);
+                }}
+                className="w-full py-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 font-bold text-sm transition duration-200"
+              >
+                Just Stop Playback
+              </button>
+              <button
+                onClick={() => setShowAbandonModal(false)}
+                className="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 font-bold text-sm transition duration-200 mt-1"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
