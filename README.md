@@ -4,6 +4,12 @@
   <img src="frontend/public/icon.svg" width="150" alt="Orbit Logo" />
 </p>
 
+<p align="center">
+  <img src="screenshots/screenshot_playback.png" width="30%" alt="Playback Screen" />
+  <img src="screenshots/screenshot-seed-station.png" width="30%" alt="Seed Station Screen" />
+  <img src="screenshots/screenshot_syncing.png" width="30%" alt="Syncing Screen" />
+</p>
+
 Orbit is a self-hosted client and recommendation server for Subsonic/Navidrome music libraries. It maintains a continuous rolling queue of upcoming tracks by blending listening history, skips, and user feedback through either local acoustic analysis or cloud-based LLM APIs.
 
 The frontend is a mobile-friendly Progressive Web App (PWA) with lock-screen integration, background audio pre-fetching, and real-time station diagnostics.
